@@ -18,7 +18,7 @@ from constants import (
     has_staff, has_sceriffo, has_role_id
 )
 
-# ── Bot ───────────────────────────────────────────────────────────────────────
+# ── Bot ─────────────────────────────────────────────────────────────[...]
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -28,7 +28,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 print("✅ Bot inizializzato", flush=True)
 
-# ── Events ────────────────────────────────────────────────────────────────────
+# ── Events ────────────────────────────────────────────────────────────[...]
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})", flush=True)
@@ -45,9 +45,9 @@ async def on_ready():
         print("✅ BackgroundView registrata", flush=True)
     except Exception as e:
         print(f"⚠️ BackgroundView non registrata: {e}", flush=True)
-    print("🤠 Red Dead Redemption II Bot — Pronto!", flush=True)
+    print("🏝️ West Coast Paradise — GTA Online RP (PS4) — Pronto!", flush=True)
 
-# ── Import moduli ─────────────────────────────────────────────────────────────
+# ── Import moduli ─────────────────────────────────────────────────────────��[...]
 _modules = [
     ("commands_wallet",          "setup_wallet_commands"),
     ("commands_rp",              "setup_rp_commands"),
@@ -85,7 +85,7 @@ for mod_name, func_name in _modules:
 
 print("✅ Tutti i moduli caricati!", flush=True)
 
-# ── /sync ─────────────────────────────────────────────────────────────────────
+# ── /sync ────────────────────────────────────────────────────────────�[...]
 @bot.tree.command(name="sync", description="[Owner] Sincronizza i comandi slash")
 async def sync(interaction: discord.Interaction):
     if not has_role_id(interaction, STAFF_ROLE_ID):
@@ -103,14 +103,14 @@ async def sync(interaction: discord.Interaction):
         else:
             await interaction.followup.send(f"❌ Errore: {e}", ephemeral=True)
 
-# ── /lista-comandi ────────────────────────────────────────────────────────────
+# ── /lista-comandi ─────────────────────────────────────────────────────────[...]
 class ListaSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="⭐ Staff",         value="staff",         description="Comandi riservati allo staff"),
             discord.SelectOption(label="🔫 Sceriffo",      value="sceriffo",      description="Comandi dello Sceriffo"),
             discord.SelectOption(label="💰 Economia",      value="economia",      description="Banca, fatture, fondo cassa"),
-            discord.SelectOption(label="🤠 Roleplay",      value="roleplay",      description="Azioni RP, bisaccia, turni"),
+            discord.SelectOption(label="🎮 Roleplay",      value="roleplay",      description="Azioni RP, inventario, turni"),
             discord.SelectOption(label="🚫 Contrabbando",  value="contrabbando",  description="Raccolta e vendita droga, rapine"),
         ]
         super().__init__(placeholder="Seleziona categoria...", options=options)
@@ -172,30 +172,27 @@ class ListaSelect(discord.ui.Select):
                 "`/tiro-dadi` — Tira i dadi (gioco d'azzardo)",
             ]
         elif cat == "roleplay":
-            embed = discord.Embed(title="🤠 COMANDI ROLEPLAY", color=discord.Color.purple())
+            embed = discord.Embed(title="🎮 COMANDI ROLEPLAY", color=discord.Color.purple())
             cmds = [
-                "`/portafoglio` — Apri il tuo portafoglio (documento, bisaccia, proprietà, fedina)",
-                "`/me` — Azione RP (Fame & Sete calano)",
-                "`/mangia` — Mangia dalla bisaccia",
-                "`/bevi` — Bevi dalla bisaccia",
-                "`/bisaccia [utente]` — Visualizza bisaccia (tua o altrui)",
-                "`/vendibisaccia` — Vendi la tua bisaccia a un altro giocatore",
+                "`/portafoglio` — Apri il tuo portafoglio (documento, inventario, proprietà, fedina)",
+                "`/me` — Azione RP (fame & sete possono variare)",
+                "`/mangia` — Mangia dall'inventario",
+                "`/bevi` — Bevi dall'inventario",
+                "`/inventario [utente]` — Visualizza inventario (tuo o di un altro)",
+                "`/venditinventario` — Vendi oggetti dell'inventario a un altro giocatore",
                 "`/dai-item` — Dai un item a un altro giocatore",
-                "`/utilizza-item` — Utilizza un item dalla bisaccia",
+                "`/utilizza-item` — Utilizza un item dall'inventario",
                 "`/listino-emporio` — Visualizza il listino dell'emporio",
                 "`/item-sell` — Acquista un item dall'emporio",
                 "`/inizio-turno` / `/fine-turno` — Registra turno di lavoro",
-                "`/campeggio` — Monta/smonta accampamento",
+                "`/safehouse` — Entra/Esci dalla tua safehouse",
                 "`/anonimo` — Invia un messaggio anonimo",
-                "`/nascondo` — Nascondi un oggetto in un luogo segreto",
-                "`/lettera` — Invia una lettera privata a un giocatore",
+                "`/nascondi` — Nascondi un oggetto in un luogo segreto",
                 "`/sondaggiorp` — Crea un sondaggio roleplay",
                 "`/miafedinapenale` — Visualizza la tua fedina penale",
                 "`/mie-proprieta` — Le tue proprietà registrate",
-                "`/pulisci-arma` — Pulisci un'arma con Olio per Armi / Cote",
-                "`/visualizza-stato-arma` — Visualizza l'usura delle tue armi",
                 "`/depgenerici` - Visualizza il deposito della tua fazione",
-                "`/mettidepfazione` - Deposita un item dalla tua bisaccia nel deposito",
+                "`/mettidepfazione` - Deposita un item dalla tua inventario nel deposito",
             ]
         elif cat == "contrabbando":
             embed = discord.Embed(title="🚫 COMANDI CONTRABBANDO", color=discord.Color(0x2C2C2C))
@@ -204,19 +201,12 @@ class ListaSelect(discord.ui.Select):
                 "`/fine-raccolta` — Termina la sessione e calcola il tempo",
                 "`/inizio-vendita` — Inizia una sessione di vendita droga",
                 "`/fine-vendita` — Termina la sessione di vendita e calcola il tempo",
-                "`/rapina` — Avvia una rapina nel Far West",
-                "`/inizio-creazione-alcool` - Inizia la creazione di alcool",
-                "`/fine-creazione-alcool` - Termina la creazione di alcool",
-                "`/inizio-distillazione` - Inizia la distillazione di alcool",
-                "`/fine-distillazione` - Termina la distillazione di alcool",
-                "`/inizio-vendita-moonshine` - Comincia la vendita di moonshine",
-                "`/fine-vendita-moonshine` - Termina la vendita di moonshine",
-                
+                "`/rapina` — Avvia una rapina (negozio, blindato, banca)",
             ]
         else:
             return
         embed.description = "**Comandi disponibili:**\n\n" + "\n".join(cmds)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Lista Comandi")
+        embed.set_footer(text="West Coast Paradise — GTA Online RP (PS4)")
         await interaction.response.edit_message(embed=embed, view=ListaView())
 
 
@@ -229,17 +219,17 @@ class ListaView(discord.ui.View):
 @bot.tree.command(name="lista-comandi", description="Visualizza tutti i comandi disponibili")
 async def lista_comandi(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="<:regolamento:1459626703411478560> LISTA COMANDI — RED DEAD REDEMPTION II",
+        title="<:regolamento:1459626703411478560> LISTA COMANDI — WEST COAST PARADISE",
         description="Seleziona una categoria dal menu qui sotto.",
         color=discord.Color(0xDAA520), timestamp=discord.utils.utcnow()
     )
     embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.set_footer(text="🤠 Red Dead Redemption II RP")
+    embed.set_footer(text="West Coast Paradise — GTA Online RP (PS4)")
     await interaction.response.send_message(embed=embed, view=ListaView(), ephemeral=True)
 
-# ── Webserver ─────────────────────────────────────────────────────────────────
+# ── Webserver ──────────────────────────────────────────────────────────��[...]
 async def handle(request):
-    return web.Response(text="🤠 Red Dead Redemption II Bot — Online!")
+    return web.Response(text="🏝️ West Coast Paradise — Online!")
 
 async def start_webserver():
     app_web = web.Application()
@@ -251,7 +241,7 @@ async def start_webserver():
     await web.TCPSite(runner, "0.0.0.0", port).start()
     print(f"🌐 Webserver avviato su porta {port}", flush=True)
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# ── Main ────────────────────────────────────────────────────────────�[...]
 async def main():
     await start_webserver()
     TOKEN = os.getenv("DISCORD_TOKEN")
@@ -264,7 +254,7 @@ async def main():
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
-    print("🚀 Avvio Red Dead Redemption II Bot...", flush=True)
+    print("🚀 Avvio West Coast Paradise Bot...", flush=True)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

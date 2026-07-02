@@ -1,7 +1,7 @@
 import discord
 
 # ══════════════════════════════════════════════
-#  COSTANTI — RDR2 RP BOT
+#  COSTANTI — WEST COAST PARADISE RP BOT
 # ══════════════════════════════════════════════
 
 STAFF_ROLE_ID     = 1404051875426467902
@@ -49,10 +49,12 @@ def has_staff(interaction) -> bool:
         return False
     return any(r.id in STAFF_ROLES for r in interaction.user.roles)
 
+
 def has_sceriffo(interaction) -> bool:
     if not isinstance(interaction.user, discord.Member):
         return False
     return any(r.id in SCERIFFO_ROLES for r in interaction.user.roles)
+
 
 def has_role_id(interaction, role_id) -> bool:
     if not isinstance(interaction.user, discord.Member):
