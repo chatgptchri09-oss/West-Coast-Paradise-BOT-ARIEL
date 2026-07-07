@@ -238,7 +238,7 @@ async def lista_comandi(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=ListaView(), ephemeral=True)
 
 # ── Webserver ─────────────────────────────────────────────────────────────────
-async def handle(request):
+async def handle(request) : 
     return web.Response(text="🤠 Red Dead Redemption II Bot — Online!")
 
 async def start_webserver():
