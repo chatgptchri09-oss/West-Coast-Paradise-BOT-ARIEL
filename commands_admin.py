@@ -6,22 +6,22 @@ from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff, CHIAVE_ROLE_ID
 
 # ── ID Ruoli speciali ─────────────────────────────────────────────────────────
 AGENZIA_ROLE_ID      = 1404051965364670545
-WHITELISTER_ROLE_ID  = 1404051876592488562
-CHIAVE_CMD_ROLE_ID   = 1404051860121456701
-FOUNDER_ROLE_ID      = 1404051866962100286
+WHITELISTER_ROLE_ID  = 1415090850253246534, 1524309399987027971
+CHIAVE_CMD_ROLE_ID   = 1414735564632231988
+DEVELOPER_ROLE_ID      = 1458161081024516242
 
 # Ruoli assegnati dal whitelister
-BG_POSITIVO_ROLE_ID  = 1480218025373208791
+BG_POSITIVO_ROLE_ID  = 1415102727746490522
 WL_POSITIVA_ROLES    = [
-    1404052052530696243,
-    1404052053877063680,
-    1404052056028872775,
-    1432490950277599313,
+    1415375541069942785,
+    1414752091607535727,
+    1414752276404502730,
+    1415123550624419924,
 ]
-SESSO_UOMO_ROLE_ID   = 1404052058688065547
-SESSO_DONNA_ROLE_ID  = 1404052059564675174
+SESSO_UOMO_ROLE_ID   = 1415375715737538661
+SESSO_DONNA_ROLE_ID  = 1415375849242497087
 
-BACKGROUND_CHANNEL_ID = 1480221950105096355
+BACKGROUND_CHANNEL_ID = 1415100952796725268
 
 # ── Helper log ────────────────────────────────────────────────────────────────
 async def _log(bot, embed: discord.Embed):
@@ -49,12 +49,12 @@ async def _avvia_background(bot, member: discord.Member):
         ("🌵 Come Sei Venuto A Conoscenza Del Server",   "Come hai conosciuto il nostro server?"),
         ("🚨 In Quanti Altri Server Sei Stato",          "In quanti altri server sei stato?"),
         ("⚡ Perché Hai Scelto Questo Server",           "Perché hai scelto questo server?"),
-        ("🐎 Sai che è un server RP di RDR2 Online",    "Sai che è un server RP di RDR2 Online? (Sì/No)"),
+        ("🏙️ Sai che è un server RP di GTA V Online",    "Sai che è un server RP di GTA V Online? (Sì/No)"),
     ]
     DOMANDE_IC = [
         ("🖋️ Nome e Cognome",                           "Scrivi il nome e cognome del tuo personaggio:"),
-        ("🔞 Età (Siamo nel 1899)",                      "Quanti anni ha il tuo personaggio? (Siamo nel 1899)"),
-        ("📆 Data Di Nascita (Siamo nel 1899)",          "Data di nascita del personaggio (Siamo nel 1899):"),
+        ("🔞 Età",                                       "Quanti anni ha il tuo personaggio? "),
+        ("📆 Data Di Nascita ",                          "Data di nascita del personaggio :"),
         ("🧠 Carattere, Personalità e Paure",            "Descrivi carattere, personalità e paure del personaggio:"),
         ("👀 Obbiettivo",                                "Qual è l'obiettivo del tuo personaggio?"),
         ("📕 Storia Personaggio (Minimo 5 Righe)",       "Racconta la storia del tuo personaggio (minimo 5 righe):"),
@@ -178,14 +178,14 @@ async def _avvia_background(bot, member: discord.Member):
             )
             log_embed.add_field(name="👤 Candidato", value=member.mention,  inline=True)
             log_embed.add_field(name="🆔 User ID",   value=str(member.id),  inline=True)
-            log_embed.set_footer(text="🤠 Red Dead Redemption II — Background PG")
+            log_embed.set_footer(text="🏙️ West Coast RP — Background PG")
             await ch.send(embed=log_embed)
     except Exception:
         pass
 
 
 # ── Modal di conferma ─────────────────────────────────────────────────────────
-class BackgroundConfermaModal(discord.ui.Modal, title="🤠 Conferma Background PG"):
+class BackgroundConfermaModal(discord.ui.Modal, title="🏙️ Conferma Background PG"):
 
     conferma = discord.ui.TextInput(
         label="Scrivi CONFERMO per iniziare",
@@ -254,7 +254,7 @@ class BackgroundConfermaModal(discord.ui.Modal, title="🤠 Conferma Background 
 class BackgroundButton(discord.ui.Button):
     def __init__(self, bot):
         super().__init__(
-            label="🤠 Inizia Background PG",
+            label="Inizia Background PG",
             style=discord.ButtonStyle.success,
             custom_id="bg_apri_modal"   # custom_id fisso per persistenza
         )
@@ -304,7 +304,7 @@ def setup_admin_commands(bot):
         embed.add_field(name="💵 Importo",   value=f"${importo:,}",          inline=True)
         embed.add_field(name="📋 Dove",      value=label,                    inline=True)
         embed.add_field(name="👮 Staff",     value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
@@ -348,7 +348,7 @@ def setup_admin_commands(bot):
         embed.add_field(name="💵 Importo",   value=f"${importo:,}",          inline=True)
         embed.add_field(name="📋 Da",        value=label,                    inline=False)
         embed.add_field(name="👮 Staff",     value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
@@ -366,7 +366,7 @@ def setup_admin_commands(bot):
         embed.add_field(name="💵 Stipendio", value=f"${importo:,}",          inline=True)
         embed.add_field(name="🤠 Lavoro",    value=ruolo,                    inline=True)
         embed.add_field(name="👮 Pagato da", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Stipendio")
+        embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
         try:
@@ -388,7 +388,7 @@ def setup_admin_commands(bot):
             title=f"📜 {titolo}", description=messaggio,
             color=discord.Color(0xDAA520), timestamp=discord.utils.utcnow()
         )
-        embed.set_footer(text=f"Annuncio di {interaction.user.display_name} • 🤠 Red Dead Redemption II")
+        embed.set_footer(text=f"Annuncio di {interaction.user.display_name} • 🏙️ West Coast RP")
         await interaction.channel.send(content="@everyone", embed=embed)
         await interaction.response.send_message("✅ Annuncio inviato!", ephemeral=True)
 
@@ -402,7 +402,7 @@ def setup_admin_commands(bot):
             await db.commit()
         embed = discord.Embed(title="🗑️ 𝐖𝐢𝐩𝐞 𝐈𝐭𝐞𝐦 𝐂𝐨𝐦𝐩𝐥𝐞𝐭𝐚𝐭𝐨", color=discord.Color.red(), timestamp=discord.utils.utcnow())
         embed.add_field(name="👮 Eseguito da", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP — Wipe")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
@@ -496,7 +496,7 @@ def setup_admin_commands(bot):
             title=f"{emoji} 𝐒𝐞𝐫𝐯𝐢𝐳𝐢 𝐖𝐡𝐢𝐭𝐞𝐥𝐢𝐬𝐭 — {stato.upper()}",
             color=color, timestamp=discord.utils.utcnow()
         )
-        embed.set_footer(text="🤠 Red Dead Redemption II")
+        embed.set_footer(text="🏙️ West Coast RP")
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("✅ Stato aggiornato!", ephemeral=True)
 
@@ -525,7 +525,7 @@ def setup_admin_commands(bot):
         embed.add_field(name="💵 Aggiunto",     value=f"${importo:,}",           inline=True)
         embed.add_field(name="💰 Nuovo totale", value=f"${current+importo:,}",   inline=True)
         embed.add_field(name="👮 Staff",        value=interaction.user.mention,  inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
@@ -556,7 +556,7 @@ def setup_admin_commands(bot):
         embed.add_field(name="🏷️ Tipo",         value=tipo,                     inline=True)
         embed.add_field(name="📍 Ubicazione",   value=luogo,                    inline=False)
         embed.add_field(name="👮 Assegnato da", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Proprietà")
+        embed.set_footer(text="🏙️ West Coast RP — Property")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
         try:
@@ -576,7 +576,7 @@ def setup_admin_commands(bot):
             return
 
         embed = discord.Embed(
-            title="𝐌𝐀𝐊𝐄 𝐘𝐎𝐔𝐑 𝐍𝐀𝐌𝐄 𝐈𝐍 𝐓𝐇𝐄 𝐖𝐄𝐒𝐓",
+            title="𝐌𝐀𝐊𝐄 𝐘𝐎𝐔𝐑 𝐍𝐀𝐌𝐄 𝐈𝐍 𝐖𝐄𝐒𝐓 𝐂𝐎𝐀𝐒𝐓 𝐑𝐏",
             description=(
                 "Prima di mettere piede nelle terre selvagge e iniziare la tua nuova vita, "
                 "ogni anima deve lasciare traccia della propria storia.\n\n"
@@ -587,9 +587,9 @@ def setup_admin_commands(bot):
                 "Ricorda... in queste terre un uomo vale tanto quanto la storia "
                 "che porta con sé. 🤠"
             ),
-            color=discord.Color(0x8B4513)
+            color=discord.Color(0x00C853)
         )
-        embed.set_footer(text="🤠 Red Dead Redemption II — Ufficio Registri")
+        embed.set_footer(text="🏙️ West Coast RP - Ufficio Registri")
 
         await interaction.channel.send(embed=embed, view=BackgroundView(bot))
         await interaction.response.send_message("✅ Pannello background inviato!", ephemeral=True)
