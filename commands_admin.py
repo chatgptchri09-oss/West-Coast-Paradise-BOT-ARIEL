@@ -5,10 +5,10 @@ import aiosqlite
 from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff, CHIAVE_ROLE_ID
 
 # ── ID Ruoli speciali ─────────────────────────────────────────────────────────
-AGENZIA_ROLE_ID      = 1424381004944244828
-WHITELISTER_ROLE_ID  = 1415090850253246534, 1524309399987027971
+AGENZIA_ROLE_ID      = 1404051965364670545
+WHITELISTER_ROLE_ID  = [1415090850253246534, 1524309399987027971]  # lista, non tupla
 CHIAVE_CMD_ROLE_ID   = 1414735564632231988
-DEVELOPER_ROLE_ID      = 1458161081024516242
+DEVELOPER_ROLE_ID    = 1458161081024516242   # ruolo per /setup-background
 
 # Ruoli assegnati dal whitelister
 BG_POSITIVO_ROLE_ID  = 1415102727746490522
@@ -20,6 +20,7 @@ WL_POSITIVA_ROLES    = [
 ]
 SESSO_UOMO_ROLE_ID   = 1415375715737538661
 SESSO_DONNA_ROLE_ID  = 1415375849242497087
+NON_WL_ROLE_ID       = 1414738242938605660   # ruolo "Non Whitelisted" GTA
 
 BACKGROUND_CHANNEL_ID = 1415100952796725268
 
@@ -30,9 +31,12 @@ async def _log(bot, embed: discord.Embed):
         if ch: await ch.send(embed=embed)
     except Exception: pass
 
-def _has_role(interaction: discord.Interaction, role_id: int) -> bool:
+def _has_role(interaction: discord.Interaction, role_id) -> bool:
+    """Accetta sia un int singolo che una lista di int."""
     if not isinstance(interaction.user, discord.Member):
         return False
+    if isinstance(role_id, (list, tuple)):
+        return any(r.id in role_id for r in interaction.user.roles)
     return any(r.id == role_id for r in interaction.user.roles)
 
 
@@ -41,23 +45,23 @@ async def _avvia_background(bot, member: discord.Member):
     """Avvia il flusso background via DM. Chiamata dopo conferma dal Modal."""
 
     DOMANDE_OOC = [
-        ("🆔 ID PSN",                                    "Scrivi il tuo ID PSN:"),
-        ("💻 Tag Discord",                               "Scrivi il tuo tag Discord:"),
-        ("🖋️ Nome (Reale)",                             "Scrivi il tuo nome reale:"),
-        ("🔞 Età (Reale)",                               "Scrivi la tua età reale:"),
-        ("👤 Da Quanto Tempo Fai Rp",                    "Da quanto tempo fai roleplay?"),
-        ("🌵 Come Sei Venuto A Conoscenza Del Server",   "Come hai conosciuto il nostro server?"),
-        ("🚨 In Quanti Altri Server Sei Stato",          "In quanti altri server sei stato?"),
-        ("⚡ Perché Hai Scelto Questo Server",           "Perché hai scelto questo server?"),
-        ("🏙️ Sai che è un server RP di GTA V Online",    "Sai che è un server RP di GTA V Online? (Sì/No)"),
+        ("🆔 ID PSN",                                  "Scrivi il tuo ID PSN:"),
+        ("💻 Tag Discord",                             "Scrivi il tuo tag Discord:"),
+        ("🖋️ Nome (Reale)",                           "Scrivi il tuo nome reale:"),
+        ("🔞 Età (Reale)",                             "Scrivi la tua età reale:"),
+        ("👤 Da Quanto Tempo Fai Rp",                  "Da quanto tempo fai roleplay?"),
+        ("🌵 Come Sei Venuto A Conoscenza Del Server", "Come hai conosciuto il nostro server?"),
+        ("🚨 In Quanti Altri Server Sei Stato",        "In quanti altri server sei stato?"),
+        ("⚡ Perché Hai Scelto Questo Server",         "Perché hai scelto questo server?"),
+        ("🏙️ Sai che è un server RP di GTA V Online", "Sai che è un server RP di GTA V Online? (Sì/No)"),
     ]
     DOMANDE_IC = [
-        ("🖋️ Nome e Cognome",                           "Scrivi il nome e cognome del tuo personaggio:"),
-        ("🔞 Età",                                       "Quanti anni ha il tuo personaggio? "),
-        ("📆 Data Di Nascita ",                          "Data di nascita del personaggio :"),
-        ("🧠 Carattere, Personalità e Paure",            "Descrivi carattere, personalità e paure del personaggio:"),
-        ("👀 Obbiettivo",                                "Qual è l'obiettivo del tuo personaggio?"),
-        ("📕 Storia Personaggio (Minimo 5 Righe)",       "Racconta la storia del tuo personaggio (minimo 5 righe):"),
+        ("🖋️ Nome e Cognome",                         "Scrivi il nome e cognome del tuo personaggio:"),
+        ("🔞 Età",                                     "Quanti anni ha il tuo personaggio?"),
+        ("📆 Data Di Nascita",                         "Data di nascita del personaggio:"),
+        ("🧠 Carattere, Personalità e Paure",          "Descrivi carattere, personalità e paure del personaggio:"),
+        ("👀 Obiettivo",                               "Qual è l'obiettivo del tuo personaggio?"),
+        ("📕 Storia Personaggio (Minimo 5 Righe)",     "Racconta la storia del tuo personaggio (minimo 5 righe):"),
     ]
 
     risposte_ooc: list = []
@@ -69,7 +73,7 @@ async def _avvia_background(bot, member: discord.Member):
     async def chiedi(label: str, domanda: str):
         e = discord.Embed(
             description=f"**{domanda}**\n\n*Scrivi `annulla` per interrompere il background.*",
-            color=discord.Color(0x8B4513)
+            color=discord.Color(0x00C853)
         )
         await member.send(embed=e)
         try:
@@ -85,7 +89,7 @@ async def _avvia_background(bot, member: discord.Member):
         description=(
             "Hai impiegato troppo tempo a rispondere.\n"
             "Il background è stato **annullato automaticamente**.\n\n"
-            "Puoi ricominciare premendo il pulsante nel canale quando sei pronto. 🤠"
+            "Puoi ricominciare premendo il pulsante nel canale quando sei pronto. 🏙️"
         ),
         color=discord.Color.red()
     )
@@ -93,7 +97,7 @@ async def _avvia_background(bot, member: discord.Member):
         title="❌ Background Annullato",
         description=(
             "Hai annullato il background.\n\n"
-            "Puoi ricominciare premendo il pulsante nel canale quando sei pronto. 🤠"
+            "Puoi ricominciare premendo il pulsante nel canale quando sei pronto. 🏙️"
         ),
         color=discord.Color.orange()
     )
@@ -124,18 +128,18 @@ async def _avvia_background(bot, member: discord.Member):
 
     await member.send(embed=discord.Embed(
         description=(
-            "Le tue risposte sono state registrate negli archivi della contea.\n\n"
-            "La tua storia verrà ora esaminata dalle autorità.\n"
+            "Le tue risposte sono state registrate negli archivi della città.\n\n"
+            "La tua storia verrà ora esaminata dallo staff.\n"
             "Riceverai notizie non appena la tua richiesta verrà valutata.\n\n"
-            "Per ora, viandante... attendi il tuo destino. 🤠"
+            "Per ora... attendi il tuo destino. 🏙️"
         ),
-        color=discord.Color(0x8B4513)
+        color=discord.Color(0x00C853)
     ))
 
     # ── Embed riepilogo nel canale background ─────────────────────────────────
     embed_bg = discord.Embed(
         title="📋 𝐍𝐔𝐎𝐕𝐎 𝐁𝐀𝐂𝐊𝐆𝐑𝐎𝐔𝐍𝐃",
-        color=discord.Color(0x8B4513),
+        color=discord.Color(0x00C853),
         timestamp=discord.utils.utcnow()
     )
     embed_bg.set_thumbnail(url=member.display_avatar.url)
@@ -155,14 +159,16 @@ async def _avvia_background(bot, member: discord.Member):
     embed_bg.add_field(name="\u200b", value="╞═════𖠁 **IC** 𖠁═════╡", inline=False)
     for l, r in risposte_ic:
         _aggiungi_campo(embed_bg, l, r)
-    embed_bg.set_footer(text="🤠 Red Dead Redemption II — Background PG")
+    embed_bg.set_footer(text="🏙️ West Coast RP — Background PG")
 
     try:
         bg_ch = bot.get_channel(BACKGROUND_CHANNEL_ID)
         if not bg_ch:
             bg_ch = await bot.fetch_channel(BACKGROUND_CHANNEL_ID)
         if bg_ch:
-            await bg_ch.send(content=f"<@&{WHITELISTER_ROLE_ID}>", embed=embed_bg)
+            # Menziona entrambi i ruoli whitelister
+            mentions = " ".join(f"<@&{rid}>" for rid in WHITELISTER_ROLE_ID)
+            await bg_ch.send(content=mentions, embed=embed_bg)
             print(f"[BG] Background inviato per {member.id}", flush=True)
     except Exception as e:
         print(f"[BG] Errore invio: {e}", flush=True)
@@ -173,11 +179,11 @@ async def _avvia_background(bot, member: discord.Member):
         if ch:
             log_embed = discord.Embed(
                 title="📋 LOG — Background PG Completato",
-                color=discord.Color(0x8B4513),
+                color=discord.Color(0x00C853),
                 timestamp=discord.utils.utcnow()
             )
-            log_embed.add_field(name="👤 Candidato", value=member.mention,  inline=True)
-            log_embed.add_field(name="🆔 User ID",   value=str(member.id),  inline=True)
+            log_embed.add_field(name="👤 Candidato", value=member.mention, inline=True)
+            log_embed.add_field(name="🆔 User ID",   value=str(member.id), inline=True)
             log_embed.set_footer(text="🏙️ West Coast RP — Background PG")
             await ch.send(embed=log_embed)
     except Exception:
@@ -208,22 +214,19 @@ class BackgroundConfermaModal(discord.ui.Modal, title="🏙️ Conferma Backgrou
             )
             return
 
-        # Risposta immediata — questa è la parte chiave:
-        # rispondiamo SUBITO a Discord prima di fare qualsiasi altra cosa
         await interaction.response.send_message(
-            "✅ Perfetto! Controlla i tuoi **messaggi privati**, ti sto scrivendo ora. 🤠",
+            "✅ Perfetto! Controlla i tuoi **messaggi privati**, ti sto scrivendo ora. 🏙️",
             ephemeral=True
         )
 
-        # Proviamo ad aprire il DM
         try:
             embed_benvenuto = discord.Embed(
                 description=(
-                    "Saluti, viandante.\n"
-                    "Per entrare in queste terre dovrai rispondere ad alcune domande sul tuo passato.\n\n"
-                    "Rispondi con sincerità e iniziamo. 🤠"
+                    "Benvenuto a Los Santos!\n"
+                    "Per entrare nella città dovrai rispondere ad alcune domande sul tuo passato.\n\n"
+                    "Rispondi con sincerità e iniziamo. 🏙️"
                 ),
-                color=discord.Color.green()
+                color=discord.Color(0x00C853)
             )
             await interaction.user.send(embed=embed_benvenuto)
         except discord.Forbidden:
@@ -235,7 +238,6 @@ class BackgroundConfermaModal(discord.ui.Modal, title="🏙️ Conferma Backgrou
             )
             return
 
-        # Avvia il background in background (senza bloccare l'interaction)
         import asyncio
         asyncio.create_task(_avvia_background(self.bot, interaction.user))
 
@@ -254,14 +256,13 @@ class BackgroundConfermaModal(discord.ui.Modal, title="🏙️ Conferma Backgrou
 class BackgroundButton(discord.ui.Button):
     def __init__(self, bot):
         super().__init__(
-            label="Inizia Background PG",
+            label="🏙️ Inizia Background PG",
             style=discord.ButtonStyle.success,
-            custom_id="bg_apri_modal"   # custom_id fisso per persistenza
+            custom_id="bg_apri_modal"
         )
         self.bot = bot
 
     async def callback(self, interaction: discord.Interaction):
-        # Apre il Modal — questa risposta è ISTANTANEA per Discord
         await interaction.response.send_modal(BackgroundConfermaModal(self.bot))
 
 
@@ -273,7 +274,7 @@ class BackgroundView(discord.ui.View):
         self.add_item(BackgroundButton(bot))
 
 
-# ── Registra view persistente (chiamare in on_ready) ──────────────────────────
+# ── Registra view persistente (chiamare in on_ready) ─────────────────────────
 def register_persistent_views(bot):
     bot.add_view(BackgroundView(bot))
 
@@ -364,7 +365,7 @@ def setup_admin_commands(bot):
         embed.set_thumbnail(url=giocatore.display_avatar.url)
         embed.add_field(name="👤 Giocatore", value=giocatore.mention,        inline=True)
         embed.add_field(name="💵 Stipendio", value=f"${importo:,}",          inline=True)
-        embed.add_field(name="🤠 Lavoro",    value=ruolo,                    inline=True)
+        embed.add_field(name="🚗 Lavoro",    value=ruolo,                    inline=True)
         embed.add_field(name="👮 Pagato da", value=interaction.user.mention, inline=True)
         embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
@@ -393,7 +394,7 @@ def setup_admin_commands(bot):
         await interaction.response.send_message("✅ Annuncio inviato!", ephemeral=True)
 
     # ── /wipe-item ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="wipe-item", description="[Staff] Svuota le bisacce di tutti i giocatori")
+    @bot.tree.command(name="wipe-item", description="[Staff] Svuota gli inventari di tutti i giocatori")
     async def wipe_item(interaction: discord.Interaction):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True); return
@@ -447,13 +448,12 @@ def setup_admin_commands(bot):
         if motivazione:
             embed.add_field(name="📝 Motivazione", value=motivazione, inline=False)
         embed.add_field(name="👮 Whitelister", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Whitelist")
+        embed.set_footer(text="🏙️ West Coast RP — Whitelist")
         await interaction.followup.send(content=giocatore.mention, embed=embed)
         guild = interaction.guild
         if guild:
             try:
-                NON_WL_ID   = 1404052057630965841
-                non_wl_role = guild.get_role(NON_WL_ID)
+                non_wl_role = guild.get_role(NON_WL_ROLE_ID)
                 if esito == "bg_positivo":
                     r = guild.get_role(BG_POSITIVO_ROLE_ID)
                     if r: await giocatore.add_roles(r, reason="Background Positivo")
@@ -504,16 +504,16 @@ def setup_admin_commands(bot):
     @bot.tree.command(name="add-fondocassa", description="[Staff] Aggiungi al fondo cassa di una compagnia")
     @app_commands.describe(compagnia="La compagnia", importo="Importo da aggiungere")
     @app_commands.choices(compagnia=[
-        app_commands.Choice(name="⭐ Sceriffo",     value="Sceriffo"),
-        app_commands.Choice(name="🩺 Dottore",      value="Dottore"),
-        app_commands.Choice(name="🔫 Armiere",      value="Armiere"),
-        app_commands.Choice(name="🐴 Stalla",       value="Stalla"),
-        app_commands.Choice(name="🍺 Saloon",       value="Saloon"),
-        app_commands.Choice(name="🏪 Emporio",      value="Emporio"),
-        app_commands.Choice(name="🚫 Contrabbando", value="Contrabbando"),
-        app_commands.Choice(name="🚂 Diligenza",    value="Diligenza"),
+        app_commands.Choice(name="🚔 Polizia",      value="Polizia"),
+        app_commands.Choice(name="🏥 Ospedale",     value="Ospedale"),
+        app_commands.Choice(name="🔧 Meccanico",    value="Meccanico"),
+        app_commands.Choice(name="🚕 Taxi",         value="Taxi"),
         app_commands.Choice(name="🏦 Banca",        value="Banca"),
-        app_commands.Choice(name="🥃 Distilleria",  value="Distilleria"),
+        app_commands.Choice(name="🚫 Criminalità",  value="Criminalità"),
+        app_commands.Choice(name="🏪 Negozio",      value="Negozio"),
+        app_commands.Choice(name="🚁 Elicotteri",   value="Elicotteri"),
+        app_commands.Choice(name="🎰 Casinò",       value="Casinò"),
+        app_commands.Choice(name="🍔 Ristorazione", value="Ristorazione"),
     ])
     async def add_fondocassa(interaction: discord.Interaction, compagnia: str, importo: int):
         if not has_staff(interaction):
@@ -521,10 +521,10 @@ def setup_admin_commands(bot):
         current = await database.get_fondocassa(compagnia)
         await database.update_fondocassa(compagnia, current + importo)
         embed = discord.Embed(title="💼 𝐅𝐨𝐧𝐝𝐨 𝐂𝐚𝐬𝐬𝐚 𝐀𝐠𝐠𝐢𝐨𝐫𝐧𝐚𝐭𝐨", color=discord.Color.green(), timestamp=discord.utils.utcnow())
-        embed.add_field(name="🏢 Compagnia",    value=compagnia,                 inline=True)
-        embed.add_field(name="💵 Aggiunto",     value=f"${importo:,}",           inline=True)
-        embed.add_field(name="💰 Nuovo totale", value=f"${current+importo:,}",   inline=True)
-        embed.add_field(name="👮 Staff",        value=interaction.user.mention,  inline=True)
+        embed.add_field(name="🏢 Compagnia",    value=compagnia,                inline=True)
+        embed.add_field(name="💵 Aggiunto",     value=f"${importo:,}",          inline=True)
+        embed.add_field(name="💰 Nuovo totale", value=f"${current+importo:,}",  inline=True)
+        embed.add_field(name="👮 Staff",        value=interaction.user.mention, inline=True)
         embed.set_footer(text="🏙️ West Coast RP — Money Log")
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
@@ -533,14 +533,14 @@ def setup_admin_commands(bot):
     @bot.tree.command(name="daiproprieta", description="[Agenzia] Registra una proprietà per un cittadino")
     @app_commands.describe(cittadino="Il proprietario", nome="Nome proprietà", tipo="Tipo", luogo="Ubicazione")
     @app_commands.choices(tipo=[
-        app_commands.Choice(name="🏡 Ranch",        value="Ranch"),
-        app_commands.Choice(name="⛏️ Miniera",      value="Miniera"),
-        app_commands.Choice(name="🍺 Saloon",       value="Saloon"),
-        app_commands.Choice(name="🐴 Stalla",       value="Stalla"),
-        app_commands.Choice(name="🏚️ Casolare",     value="Casolare"),
-        app_commands.Choice(name="🌾 Fattoria",     value="Fattoria"),
-        app_commands.Choice(name="🏪 Emporio",      value="Emporio"),
-        app_commands.Choice(name="🏕️ Accampamento", value="Accampamento"),
+        app_commands.Choice(name="🏠 Appartamento",  value="Appartamento"),
+        app_commands.Choice(name="🏡 Villa",         value="Villa"),
+        app_commands.Choice(name="🏢 Ufficio",       value="Ufficio"),
+        app_commands.Choice(name="🏪 Negozio",       value="Negozio"),
+        app_commands.Choice(name="🔧 Garage",        value="Garage"),
+        app_commands.Choice(name="🏭 Magazzino",     value="Magazzino"),
+        app_commands.Choice(name="🎰 Locale",        value="Locale"),
+        app_commands.Choice(name="🏕️ Altro",         value="Altro"),
     ])
     async def dai_proprieta(interaction: discord.Interaction, cittadino: discord.Member,
                             nome: str, tipo: str, luogo: str):
@@ -549,7 +549,7 @@ def setup_admin_commands(bot):
                 "❌ Solo l'**Agenzia Immobiliare** può registrare proprietà.", ephemeral=True
             ); return
         await database.add_property(str(cittadino.id), nome, tipo, luogo)
-        embed = discord.Embed(title="🏡 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐭𝐚", color=discord.Color(0x8B4513), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(title="🏠 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐭𝐚", color=discord.Color(0x00C853), timestamp=discord.utils.utcnow())
         embed.set_thumbnail(url=cittadino.display_avatar.url)
         embed.add_field(name="👤 Proprietario", value=cittadino.mention,        inline=True)
         embed.add_field(name="🏠 Nome",         value=nome,                     inline=True)
@@ -561,35 +561,35 @@ def setup_admin_commands(bot):
         await _log(bot, embed)
         try:
             dm = discord.Embed(
-                title="🏡 𝐍𝐮𝐨𝐯𝐚 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à!",
+                title="🏠 𝐍𝐮𝐨𝐯𝐚 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à!",
                 description=f"Sei proprietario di **{nome}** ({tipo}) a **{luogo}**!",
-                color=discord.Color(0x8B4513)
+                color=discord.Color(0x00C853)
             )
             await cittadino.send(embed=dm)
         except Exception: pass
 
     # ── /setup-background ─────────────────────────────────────────────────────
-    @bot.tree.command(name="setup-background", description="[Chiave] Invia il pannello Background PG nel canale")
+    @bot.tree.command(name="setup-background", description="[Developer] Invia il pannello Background PG nel canale")
     async def setup_background(interaction: discord.Interaction):
-        if not _has_role(interaction, FOUNDER_ROLE_ID):
+        if not _has_role(interaction, DEVELOPER_ROLE_ID):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
             return
 
         embed = discord.Embed(
-            title="𝐌𝐀𝐊𝐄 𝐘𝐎𝐔𝐑 𝐍𝐀𝐌𝐄 𝐈𝐍 𝐖𝐄𝐒𝐓 𝐂𝐎𝐀𝐒𝐓 𝐑𝐏",
+            title="🏙️ 𝐌𝐀𝐊𝐄 𝐘𝐎𝐔𝐑 𝐍𝐀𝐌𝐄 𝐈𝐍 𝐖𝐄𝐒𝐓 𝐂𝐎𝐀𝐒𝐓 𝐑𝐏",
             description=(
-                "Prima di mettere piede nelle terre selvagge e iniziare la tua nuova vita, "
-                "ogni anima deve lasciare traccia della propria storia.\n\n"
-                "Lo sceriffo della contea richiede che ogni nuovo arrivato racconti chi è, "
-                "da dove viene e quale strada lo ha condotto fin qui.\n\n"
-                "Premi il pulsante qui sotto per parlare con l'ufficio registri.\n"
+                "Benvenuto a Los Santos!\n\n"
+                "Prima di entrare nella città e iniziare la tua nuova vita, "
+                "dovrai raccontare chi sei e cosa ti ha portato fin qui.\n\n"
+                "Lo staff richiede che ogni nuovo arrivato compili il proprio "
+                "background del personaggio.\n\n"
+                "Premi il pulsante qui sotto per iniziare.\n"
                 "Verrai contattato nei messaggi privati dopo la conferma.\n\n"
-                "Ricorda... in queste terre un uomo vale tanto quanto la storia "
-                "che porta con sé. 🤠"
+                "Ricorda... in questa città, la tua storia definisce chi sei. 🏙️"
             ),
             color=discord.Color(0x00C853)
         )
-        embed.set_footer(text="🏙️ West Coast RP - Ufficio Registri")
+        embed.set_footer(text="🏙️ West Coast RP — Ufficio Registri")
 
         await interaction.channel.send(embed=embed, view=BackgroundView(bot))
         await interaction.response.send_message("✅ Pannello background inviato!", ephemeral=True)
