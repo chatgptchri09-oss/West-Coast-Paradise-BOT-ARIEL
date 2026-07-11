@@ -222,7 +222,7 @@ class BackgroundConfermaModal(discord.ui.Modal, title="🏙️ Conferma Backgrou
         try:
             embed_benvenuto = discord.Embed(
                 description=(
-                    "Benvenuto a Los Santos!\n"
+                    "Benvenuto a Blaine County!\n"
                     "Per entrare nella città dovrai rispondere ad alcune domande sul tuo passato.\n\n"
                     "Rispondi con sincerità e iniziamo. 🏙️"
                 ),
@@ -571,14 +571,14 @@ def setup_admin_commands(bot):
     # ── /setup-background ─────────────────────────────────────────────────────
     @bot.tree.command(name="setup-background", description="[Developer] Invia il pannello Background PG nel canale")
     async def setup_background(interaction: discord.Interaction):
-        if not _has_role(interaction, DEVELOPER_ROLE_ID):
+        if not _has_role(interaction, CHIAVE_CMD_ROLE_ID):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
             return
 
         embed = discord.Embed(
             title="🏙️ 𝐌𝐀𝐊𝐄 𝐘𝐎𝐔𝐑 𝐍𝐀𝐌𝐄 𝐈𝐍 𝐖𝐄𝐒𝐓 𝐂𝐎𝐀𝐒𝐓 𝐑𝐏",
             description=(
-                "Benvenuto a Los Santos!\n\n"
+                "Benvenuto a Blaine County!\n\n"
                 "Prima di entrare nella città e iniziare la tua nuova vita, "
                 "dovrai raccontare chi sei e cosa ti ha portato fin qui.\n\n"
                 "Lo staff richiede che ogni nuovo arrivato compili il proprio "
