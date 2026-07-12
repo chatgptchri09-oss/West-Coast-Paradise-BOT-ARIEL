@@ -9,7 +9,7 @@ PRESIDENTE_ROLE_ID = 1431388016546549840
 DIRETTORE_ROLE_ID  = 1459916606531567874
 CONTABILE_ROLE_ID  = 1431387710194454639
 
-BANK_CHANNEL_ID = 1525863291455537364
+BANK_CHANNEL_ID = 1525863299714121908
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 def _has_any(interaction: discord.Interaction, *role_ids: int) -> bool:
