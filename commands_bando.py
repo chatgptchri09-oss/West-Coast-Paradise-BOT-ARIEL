@@ -9,8 +9,8 @@ def setup_bando_commands(bot):
     @app_commands.describe(stato="Aperto o chiuso")
     @app_commands.choices(
         stato=[
-            app_commands.Choice(name="🟢 Aperto", value="aperto"),
-            app_commands.Choice(name="🔴 Chiuso", value="chiuso"),
+            app_commands.Choice(name="APERTO", value="aperto"),
+            app_commands.Choice(name="CHIUSO", value="chiuso"),
         ]
     )
     async def bando(interaction: discord.Interaction, stato: str):
@@ -20,11 +20,11 @@ def setup_bando_commands(bot):
 
         if stato == "aperto":
             color    = discord.Color.green()
-            titolo   = "<a:online:1459627385702973572> 𝐁𝐀𝐍𝐃𝐎 𝐀𝐏𝐄𝐑𝐓𝐎 <a:online:1459627385702973572>"
+            titolo   = "<a:online:1525963385890410741> 𝐁𝐀𝐍𝐃𝐎 𝐀𝐏𝐄𝐑𝐓𝐎 <a:online:1525963385890410741>"
             immagine = "https://i.postimg.cc/htny3bsk/585ED73F-B062-4585-8652-DA2F28167758.png"
         else:
             color    = discord.Color.red()
-            titolo   = "<a:offline:1459628872197738641> 𝐁𝐀𝐍𝐃𝐎 𝐂𝐇𝐈𝐔𝐒𝐎 <a:offline:1459628872197738641>"
+            titolo   = "<a:offline:1525963229056991254> 𝐁𝐀𝐍𝐃𝐎 𝐂𝐇𝐈𝐔𝐒𝐎 <a:offline:1525963229056991254>"
             immagine = "https://i.postimg.cc/9FhYWX9F/055FF80F-60C4-4353-A87D-7D52C9FE7D9D.png"
 
         embed = discord.Embed(title=titolo, color=color, timestamp=discord.utils.utcnow())
