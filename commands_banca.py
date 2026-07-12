@@ -5,11 +5,11 @@ import asyncio
 import random
 
 # ── Ruoli autorizzati ─────────────────────────────────────────────────────────
-SINDACO_ROLE_ID   = 1404051913150038117
-DIRETTORE_ROLE_ID = 1404051939561574514
-CONTABILE_ROLE_ID = 1480217343245287424
+PRESIDENTE_ROLE_ID   = 1431388016546549840
+DIRETTORE_ROLE_ID = 1459916606531567874
+CONTABILE_ROLE_ID = 1431387710194454639
 
-BANK_CHANNEL_ID = 1404052325609504798
+BANK_CHANNEL_ID = 1525863291455537364
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 def _has_any(interaction: discord.Interaction, *role_ids: int) -> bool:
@@ -130,7 +130,7 @@ async def _invia_richiesta(
     bank_ch = bot.get_channel(BANK_CHANNEL_ID)
     if bank_ch:
         await bank_ch.send(
-            content=f"<@&{DIRETTORE_ROLE_ID}> <@&{SINDACO_ROLE_ID}>",
+            content=f"<@&{DIRETTORE_ROLE_ID}> <@&{PROPRIETARIO_ROLE_ID}>",
             embed=embed_req,
             view=conferma_view
         )
@@ -221,9 +221,9 @@ class ConfermaView(discord.ui.View):
             else:
                 await interaction.message.edit(view=self)
 
-    @discord.ui.button(label="✅ Conferma Sindaco", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="✅ Conferma Proprietario", style=discord.ButtonStyle.primary)
     async def conferma_sindaco(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not _has_role(interaction.user, SINDACO_ROLE_ID):
+        if not _has_role(interaction.user, PROPRIETARIO_ROLE_ID):
             await interaction.response.send_message(
                 "❌ Solo il **Sindaco** può premere questo tasto.", ephemeral=True
             )
@@ -270,7 +270,7 @@ def setup_banca_commands(bot):
     @bot.tree.command(name="controlla-saldo", description="[Banca] Visualizza il saldo bancario di un cittadino")
     @app_commands.describe(cittadino="Il cittadino di cui controllare il saldo")
     async def controlla_saldo(interaction: discord.Interaction, cittadino: discord.Member):
-        if not _has_any(interaction, SINDACO_ROLE_ID, DIRETTORE_ROLE_ID, CONTABILE_ROLE_ID):
+        if not _has_any(interaction, PROPRIETARIO_ROLE_ID, DIRETTORE_ROLE_ID, CONTABILE_ROLE_ID):
             await interaction.response.send_message(
                 "❌ Non hai i permessi per usare questo comando.", ephemeral=True
             )
