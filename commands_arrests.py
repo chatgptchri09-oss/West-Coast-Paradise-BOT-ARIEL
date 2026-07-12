@@ -25,22 +25,22 @@ def setup_arrest_commands(bot):
     @bot.tree.command(name="ammanetto", description="[FDO] Ammanetta un sospettato")
     @app_commands.describe(sospettato="Il sospettato", motivo="Motivo dell'arresto")
     async def ammanetto(interaction: discord.Interaction, sospettato: discord.Member, motivo: str):
-        if not has_sceriffo(interaction):
-            await interaction.response.send_message("❌ Solo lo Sceriffo può ammanettare.", ephemeral=True); return
+        if not _has_fdo(interaction):
+            await interaction.response.send_message("❌ Solo le Forze dell'Ordine possono ammanettare.", ephemeral=True); return
         embed = discord.Embed(
-            title="<a:manette:1431626831076921507> AMMANETTATO",
+            title="🚔 AMMANETTATO",
             color=discord.Color.red(),
             timestamp=discord.utils.utcnow()
         )
         embed.set_thumbnail(url=sospettato.display_avatar.url)
-        embed.add_field(name="🤠 Sospettato", value=sospettato.mention,       inline=True)
+        embed.add_field(name="🚨 Sospettato", value=sospettato.mention,       inline=True)
         embed.add_field(name="📋 Motivo",     value=motivo,                   inline=False)
-        embed.add_field(name="⭐ Agente",     value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Sceriffo")
+        embed.add_field(name="👮 Agente",     value=interaction.user.mention, inline=True)
+        embed.set_footer(text="🏙️ West Coast RP — FDO")
         await interaction.response.send_message(embed=embed)
         try:
             await sospettato.send(embed=discord.Embed(
-                title="<a:manette:1431626831076921507> Sei stato ammanettato!",
+                title="🚔 Sei stato ammanettato!",
                 description=f"L'agente **{interaction.user.display_name}** ti ha fermato.\n**Motivo:** {motivo}",
                 color=discord.Color.red()
             ))
@@ -51,7 +51,7 @@ def setup_arrest_commands(bot):
         except Exception: pass
 
     # ── /perquisizione ────────────────────────────────────────────────────────
-    @bot.tree.command(name="perquisizione", description="[FDO/Criminali] Perquisisci un giocatore e vedi bisaccia e soldi")
+    @bot.tree.command(name="perquisizione", description="[FDO/Criminali] Perquisisci un giocatore e vedi inventario e soldi")
     @app_commands.describe(bersaglio="Il giocatore da perquisire")
     async def perquisizione(interaction: discord.Interaction, bersaglio: discord.Member):
         if not _has_perquisizione(interaction):
@@ -69,11 +69,11 @@ def setup_arrest_commands(bot):
         if inventario:
             righe_inv = "\n".join(f"• {item['item_name']} x{item['quantity']}" for item in inventario)
         else:
-            righe_inv = "*Bisaccia vuota*"
+            righe_inv = "*Inventario vuoto*"
 
         if _has_fdo(interaction):
-            titolo_ruolo = "⭐ Agente"
-            colore       = discord.Color(0x8B4513)
+            titolo_ruolo = "👮 Agente"
+            colore       = discord.Color(0x1565C0)
             titolo       = "🔍 𝐏𝐄𝐑𝐐𝐔𝐈𝐒𝐈𝐙𝐈𝐎𝐍𝐄 𝐔𝐅𝐅𝐈𝐂𝐈𝐀𝐋𝐄"
         else:
             titolo_ruolo = "🦹 Criminale"
@@ -82,27 +82,27 @@ def setup_arrest_commands(bot):
 
         embed = discord.Embed(title=titolo, color=colore, timestamp=discord.utils.utcnow())
         embed.set_thumbnail(url=bersaglio.display_avatar.url)
-        embed.add_field(name=titolo_ruolo,            value=interaction.user.mention,  inline=True)
-        embed.add_field(name="🎯 Perquisito",         value=bersaglio.mention,         inline=True)
-        embed.add_field(name="\u200b",                value="\u200b",                  inline=False)
-        embed.add_field(name="💵 Contanti",           value=f"${user_data['cash']:,}", inline=True)
-        embed.add_field(name="🏦 In Banca",           value=f"${user_data['bank']:,}", inline=True)
-        embed.add_field(name="\u200b",                value="\u200b",                  inline=False)
-        embed.add_field(name="🎒 Contenuto Bisaccia", value=righe_inv[:1024],          inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Perquisizione")
+        embed.add_field(name=titolo_ruolo,             value=interaction.user.mention,  inline=True)
+        embed.add_field(name="🎯 Perquisito",          value=bersaglio.mention,         inline=True)
+        embed.add_field(name="\u200b",                 value="\u200b",                  inline=False)
+        embed.add_field(name="💵 Contanti",            value=f"${user_data['cash']:,}", inline=True)
+        embed.add_field(name="🏦 In Banca",            value=f"${user_data['bank']:,}", inline=True)
+        embed.add_field(name="\u200b",                 value="\u200b",                  inline=False)
+        embed.add_field(name="🎒 Contenuto Inventario", value=righe_inv[:1024],         inline=False)
+        embed.set_footer(text="🏙️ West Coast RP — Perquisizione")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
         try:
             dm = discord.Embed(
                 title="🔍 Sei stato perquisito!",
                 description=(
-                    f"**{interaction.user.display_name}** ha perquisito la tua bisaccia.\n\n"
+                    f"**{interaction.user.display_name}** ha perquisito il tuo inventario.\n\n"
                     f"💵 **Contanti visti:** ${user_data['cash']:,}\n"
                     f"🎒 **Inventario visto:** sì"
                 ),
                 color=colore, timestamp=discord.utils.utcnow()
             )
-            dm.set_footer(text="🤠 Red Dead Redemption II — Perquisizione")
+            dm.set_footer(text="🏙️ West Coast RP — Perquisizione")
             await bersaglio.send(embed=dm)
         except Exception: pass
 
@@ -117,18 +117,8 @@ def setup_arrest_commands(bot):
                 await ch.send(embed=log)
         except Exception: pass
 
-    # ── /sequestra — autocomplete fuzzy sulla bisaccia del bersaglio ──────────
-    # Nota: l'autocomplete di Discord non può conoscere il bersaglio in tempo reale
-    # perché i parametri vengono risolti in ordine. La soluzione è usare
-    # l'autocomplete sull'oggetto cercando tra TUTTI gli item del server,
-    # e poi al momento dell'esecuzione verificare che il bersaglio ce l'abbia.
-    # In alternativa usiamo un approccio più semplice e funzionale:
-    # l'utente digita parte del nome e l'autocomplete mostra i match fuzzy
-    # dall'inventario del bersaglio SE il bersaglio è già stato selezionato
-    # (Discord passa i valori già inseriti nell'interaction dell'autocomplete).
-
+    # ── /sequestra ────────────────────────────────────────────────────────────
     async def _ac_oggetto(interaction: discord.Interaction, current: str):
-        # Prende il bersaglio dall'interaction se già selezionato
         try:
             bersaglio_id = interaction.namespace.bersaglio
             if not bersaglio_id:
@@ -144,16 +134,15 @@ def setup_arrest_commands(bot):
         parole = current.lower().split()
         risultati = []
         for item in inventario:
-            nome  = item["item_name"]
+            nome       = item["item_name"]
             nome_lower = nome.lower()
-            # Fuzzy: tutte le parole digitate devono essere contenute nel nome
             if all(p in nome_lower for p in parole):
                 label = f"{nome} (x{item['quantity']})"[:100]
                 risultati.append(app_commands.Choice(name=label, value=nome))
 
         return risultati[:25]
 
-    @bot.tree.command(name="sequestra", description="[FDO/Criminali] Sequestra un oggetto dalla bisaccia di un giocatore")
+    @bot.tree.command(name="sequestra", description="[FDO/Criminali] Sequestra un oggetto dall'inventario di un giocatore")
     @app_commands.describe(
         bersaglio="Il giocatore a cui sequestrare l'oggetto",
         oggetto="Cerca l'oggetto (scrivi parte del nome)",
@@ -175,11 +164,8 @@ def setup_arrest_commands(bot):
         uid_bersaglio = str(bersaglio.id)
         uid_esecutore = str(interaction.user.id)
 
-        # Verifica disponibilità — supporta anche nome parziale cercando il match esatto prima,
-        # poi il primo match fuzzy se non trovato esattamente
         qty_disponibile = await database.get_item_quantity(uid_bersaglio, oggetto)
         if qty_disponibile == 0:
-            # Prova fuzzy fallback: cerca il primo item che contiene il testo digitato
             inventario = await database.get_inventory(uid_bersaglio)
             parole     = oggetto.lower().split()
             match      = next(
@@ -188,7 +174,7 @@ def setup_arrest_commands(bot):
             )
             if not match:
                 await interaction.followup.send(
-                    f"❌ **{bersaglio.display_name}** non ha nessun oggetto corrispondente a `{oggetto}` nella bisaccia.",
+                    f"❌ **{bersaglio.display_name}** non ha nessun oggetto corrispondente a `{oggetto}` nell'inventario.",
                     ephemeral=True
                 ); return
             oggetto         = match["item_name"]
@@ -202,8 +188,8 @@ def setup_arrest_commands(bot):
             ); return
 
         if _has_fdo(interaction):
-            colore = discord.Color(0x8B4513)
-            label  = "⭐ Sequestro FDO"
+            colore = discord.Color(0x1565C0)
+            label  = "👮 Sequestro FDO"
         else:
             colore = discord.Color(0x2C2C2C)
             label  = "🦹 Rapina"
@@ -212,13 +198,13 @@ def setup_arrest_commands(bot):
             title=f"⚠️ Conferma {label}",
             description=(
                 f"Stai per sequestrare **{quantita}x {oggetto}** da {bersaglio.mention}.\n\n"
-                f"L'oggetto verrà aggiunto alla **tua bisaccia**.\n"
+                f"L'oggetto verrà aggiunto alla **tua borsa**.\n"
                 f"**Il giocatore riceverà un DM** con la notifica del sequestro.\n\n"
                 f"Sei sicuro?"
             ),
             color=colore, timestamp=discord.utils.utcnow()
         )
-        embed_confirm.set_footer(text="🤠 Red Dead Redemption II — Hai 60 secondi per confermare")
+        embed_confirm.set_footer(text="🏙️ West Coast RP — Hai 60 secondi per confermare")
 
         class ConfermaView(discord.ui.View):
             def __init__(self_v):
@@ -263,7 +249,7 @@ def setup_arrest_commands(bot):
         embed_ok.add_field(name="\u200b",         value="\u200b",                 inline=False)
         embed_ok.add_field(name="📦 Oggetto",     value=oggetto,                  inline=True)
         embed_ok.add_field(name="🔢 Quantità",    value=str(quantita),            inline=True)
-        embed_ok.set_footer(text="🤠 Red Dead Redemption II — Sequestro")
+        embed_ok.set_footer(text="🏙️ West Coast RP — Sequestro")
         await interaction.followup.send(embed=embed_ok, ephemeral=True)
 
         try:
@@ -276,7 +262,7 @@ def setup_arrest_commands(bot):
                 ),
                 color=discord.Color.red(), timestamp=discord.utils.utcnow()
             )
-            dm.set_footer(text="🤠 Red Dead Redemption II — Sequestro")
+            dm.set_footer(text="🏙️ West Coast RP — Sequestro")
             await bersaglio.send(embed=dm)
         except Exception: pass
 
