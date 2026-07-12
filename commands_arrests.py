@@ -4,8 +4,8 @@ import database
 from constants import LOG_CHANNEL_ID, has_sceriffo
 
 # ── Ruoli ─────────────────────────────────────────────────────────────────────
-FDO_ROLE_ID       = 1404051916140449885
-CRIMINALE_ROLE_ID = 1404052021539242036
+FDO_ROLE_ID       = 1524525114526269470
+CRIMINALE_ROLE_ID = 1525774939796406292
 
 def _has_fdo(interaction) -> bool:
     if not isinstance(interaction.user, discord.Member): return False
