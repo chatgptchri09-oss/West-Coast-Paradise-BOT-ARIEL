@@ -6,7 +6,7 @@ import database
 
 DATABASE_NAME = "economy_bot.db"
 LOG_CHANNEL_ID = 1479158931610931414
-LOG_CHANNEL_MONEY_ID = 1479158931610931414
+LOG_CHANNEL_MONEY_ID = 1459209240450433094
 CHIAVE_ROLE_ID = 1404051860121456701
 
 def has_role(interaction: discord.Interaction, role_id: int) -> bool:
