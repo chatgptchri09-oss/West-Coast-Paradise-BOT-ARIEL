@@ -5,9 +5,9 @@ import asyncio
 import random
 
 # ── Ruoli autorizzati ─────────────────────────────────────────────────────────
-PRESIDENTE_ROLE_ID   = 1431388016546549840
-DIRETTORE_ROLE_ID = 1459916606531567874
-CONTABILE_ROLE_ID = 1431387710194454639
+PRESIDENTE_ROLE_ID = 1431388016546549840
+DIRETTORE_ROLE_ID  = 1459916606531567874
+CONTABILE_ROLE_ID  = 1431387710194454639
 
 BANK_CHANNEL_ID = 1525863291455537364
 
@@ -108,15 +108,15 @@ async def _invia_richiesta(
         timestamp=discord.utils.utcnow()
     )
     embed_req.set_thumbnail(url=target.display_avatar.url)
-    embed_req.add_field(name="👤 Operatore",           value=mittente.mention,         inline=True)
-    embed_req.add_field(name="🎯 Cittadino",            value=target.mention,           inline=True)
-    embed_req.add_field(name="💰 Importo",              value=f"${importo:,}",          inline=True)
-    embed_req.add_field(name="🏦 Saldo banca cittadino", value=f"${target_data['bank']:,}", inline=True)
+    embed_req.add_field(name="👤 Operatore",            value=mittente.mention,              inline=True)
+    embed_req.add_field(name="🎯 Cittadino",            value=target.mention,                inline=True)
+    embed_req.add_field(name="💰 Importo",              value=f"${importo:,}",               inline=True)
+    embed_req.add_field(name="🏦 Saldo banca cittadino", value=f"${target_data['bank']:,}",  inline=True)
     embed_req.add_field(name="💵 Contanti operatore",   value=f"${mittente_data['cash']:,}", inline=True)
     embed_req.add_field(name="⚠️ Stato",
-                        value="In attesa di: **Direttore** ⬜ e **Sindaco** ⬜",
+                        value="In attesa di: **Direttore** ⬜ e **Presidente** ⬜",
                         inline=False)
-    embed_req.set_footer(text="🤠 Red Dead Redemption II — Autorizzazione Banca")
+    embed_req.set_footer(text="🏙️ West Coast RP — Autorizzazione Banca")
 
     conferma_view = ConfermaView(
         bot=bot,
@@ -130,14 +130,14 @@ async def _invia_richiesta(
     bank_ch = bot.get_channel(BANK_CHANNEL_ID)
     if bank_ch:
         await bank_ch.send(
-            content=f"<@&{DIRETTORE_ROLE_ID}> <@&{PROPRIETARIO_ROLE_ID}>",
+            content=f"<@&{DIRETTORE_ROLE_ID}> <@&{PRESIDENTE_ROLE_ID}>",
             embed=embed_req,
             view=conferma_view
         )
 
     await interaction.followup.send(
         "✅ Richiesta inviata nel canale banca.\n"
-        "In attesa della conferma di **Direttore** e **Sindaco**.",
+        "In attesa della conferma di **Direttore** e **Presidente**.",
         ephemeral=True
     )
 
@@ -146,15 +146,15 @@ async def _invia_richiesta(
 class ConfermaView(discord.ui.View):
     def __init__(self, bot, operazione, importo, mittente, target, guild):
         super().__init__(timeout=3600)
-        self.bot          = bot
-        self.operazione   = operazione
-        self.importo      = importo
-        self.mittente     = mittente
-        self.target       = target
-        self.guild        = guild
-        self.ok_direttore = False
-        self.ok_sindaco   = False
-        self._lock        = asyncio.Lock()
+        self.bot           = bot
+        self.operazione    = operazione
+        self.importo       = importo
+        self.mittente      = mittente
+        self.target        = target
+        self.guild         = guild
+        self.ok_direttore  = False
+        self.ok_presidente = False
+        self._lock         = asyncio.Lock()
 
     async def _esegui(self, interaction: discord.Interaction):
         mittente_data = await database.get_user(str(self.mittente.id))
@@ -193,7 +193,7 @@ class ConfermaView(discord.ui.View):
             color=discord.Color.green(),
             timestamp=discord.utils.utcnow()
         )
-        embed_ok.set_footer(text="🤠 Red Dead Redemption II — Banca")
+        embed_ok.set_footer(text="🏙️ West Coast RP — Banca")
         await interaction.message.edit(embed=embed_ok, view=None)
         self.stop()
         try:
@@ -216,25 +216,25 @@ class ConfermaView(discord.ui.View):
             button.disabled = True
             button.label    = "✅ Direttore ✓"
             await interaction.response.defer()
-            if self.ok_sindaco:
+            if self.ok_presidente:
                 await self._esegui(interaction)
             else:
                 await interaction.message.edit(view=self)
 
-    @discord.ui.button(label="✅ Conferma Proprietario", style=discord.ButtonStyle.primary)
-    async def conferma_sindaco(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not _has_role(interaction.user, PROPRIETARIO_ROLE_ID):
+    @discord.ui.button(label="✅ Conferma Presidente", style=discord.ButtonStyle.primary)
+    async def conferma_presidente(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not _has_role(interaction.user, PRESIDENTE_ROLE_ID):
             await interaction.response.send_message(
-                "❌ Solo il **Sindaco** può premere questo tasto.", ephemeral=True
+                "❌ Solo il **Presidente** può premere questo tasto.", ephemeral=True
             )
             return
         async with self._lock:
-            if self.ok_sindaco:
+            if self.ok_presidente:
                 await interaction.response.send_message("⚠️ Hai già confermato.", ephemeral=True)
                 return
-            self.ok_sindaco = True
+            self.ok_presidente = True
             button.disabled = True
-            button.label    = "✅ Sindaco ✓"
+            button.label    = "✅ Presidente ✓"
             await interaction.response.defer()
             if self.ok_direttore:
                 await self._esegui(interaction)
@@ -270,7 +270,7 @@ def setup_banca_commands(bot):
     @bot.tree.command(name="controlla-saldo", description="[Banca] Visualizza il saldo bancario di un cittadino")
     @app_commands.describe(cittadino="Il cittadino di cui controllare il saldo")
     async def controlla_saldo(interaction: discord.Interaction, cittadino: discord.Member):
-        if not _has_any(interaction, PROPRIETARIO_ROLE_ID, DIRETTORE_ROLE_ID, CONTABILE_ROLE_ID):
+        if not _has_any(interaction, PRESIDENTE_ROLE_ID, DIRETTORE_ROLE_ID, CONTABILE_ROLE_ID):
             await interaction.response.send_message(
                 "❌ Non hai i permessi per usare questo comando.", ephemeral=True
             )
@@ -287,7 +287,7 @@ def setup_banca_commands(bot):
         embed.add_field(name="👤 Titolare", value=cittadino.mention,    inline=True)
         embed.add_field(name="🏦 In Banca", value=f"${user['bank']:,}", inline=True)
         embed.add_field(name="💵 Contanti", value=f"${user['cash']:,}", inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Banca")
+        embed.set_footer(text="🏙️ West Coast RP — Banca")
 
         view = SaldoView(bot=bot, mittente=interaction.user, target=cittadino)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -297,7 +297,7 @@ def setup_banca_commands(bot):
     async def tiro_dadi(interaction: discord.Interaction):
         risultato = random.randint(1, 10)
 
-        FACCE     = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"]
+        FACCE      = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"]
         ANIMAZIONE = ["🎲", "🎰", "✨", "💫", "🌀"]
 
         embed_anim = discord.Embed(
@@ -305,7 +305,7 @@ def setup_banca_commands(bot):
             description="Il dado rotola sul tavolo...",
             color=discord.Color(0xDAA520)
         )
-        embed_anim.set_footer(text="🤠 Red Dead Redemption II — Dadi")
+        embed_anim.set_footer(text="🏙️ West Coast RP — Dadi")
         await interaction.response.send_message(embed=embed_anim)
         msg = await interaction.original_response()
 
@@ -316,7 +316,7 @@ def setup_banca_commands(bot):
                 description=f"{frame}  **{casuale}**  {frame}",
                 color=discord.Color(0xDAA520)
             )
-            embed_frame.set_footer(text="🤠 Red Dead Redemption II — Dadi")
+            embed_frame.set_footer(text="🏙️ West Coast RP — Dadi")
             await msg.edit(embed=embed_frame)
             await asyncio.sleep(0.6)
 
@@ -343,5 +343,5 @@ def setup_banca_commands(bot):
         embed_finale.add_field(name="🎯 Numero uscito", value=str(risultato),          inline=True)
         embed_finale.add_field(name="👤 Giocatore",     value=interaction.user.mention, inline=True)
         embed_finale.add_field(name="📊 Probabilità",   value="10% per ogni numero",   inline=True)
-        embed_finale.set_footer(text="🤠 Red Dead Redemption II — Dadi")
+        embed_finale.set_footer(text="🏙️ West Coast RP — Dadi")
         await msg.edit(embed=embed_finale)
