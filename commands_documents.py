@@ -5,8 +5,8 @@ import aiosqlite
 from constants import STATO_ROLE_ID, LOG_CHANNEL_ID, has_sceriffo, DATABASE_NAME
 
 # ── Ruoli ─────────────────────────────────────────────────────────────────────
-STAFF_VEDI_DOC    = {1404051875426467902, 1404051873698418791, 1404051916140449885 }
-FALSARIO_ROLE_ID  = 1404052043424989194   # Ruolo per /documento-falso
+STAFF_VEDI_DOC    = {1414738761207517214, 1524525114526269470 }
+FALSARIO_ROLE_ID  = 1525816899987046491   # Ruolo per /documento-falso
 
 def has_stato(interaction) -> bool:
     if not isinstance(interaction.user, discord.Member): return False
