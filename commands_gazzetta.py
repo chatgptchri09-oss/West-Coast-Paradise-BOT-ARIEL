@@ -6,9 +6,9 @@ from datetime import datetime, timezone, timedelta
 from constants import LOG_CHANNEL_ID
 
 # ── Configurazione ────────────────────────────────────────────────────────────
-GAZZETTA_CHANNEL_ID   = 1525157991123390475   # Canale dove appare la gazzetta
-GIORNALISTA_ROLE_ID   = 1431390676444123186   # Ruolo abilitato al comando
-NOTIFICA_ROLE_ID      = 1414752091607535727   # Ruolo che riceve la notifica (@&)
+GAZZETTA_CHANNEL_ID   = 1404052251982565447   # Canale dove appare la gazzetta
+GIORNALISTA_ROLE_ID   = 1404052056028872775   # Ruolo abilitato al comando
+NOTIFICA_ROLE_ID      = 1404052056028872775   # Ruolo che riceve la notifica (@&)
 DATABASE_NAME         = "rdr2.db"             # Stesso DB del bot
 
 # ── Timezone Italia ───────────────────────────────────────────────────────────
@@ -53,10 +53,6 @@ async def _save_evento(tipo: str, titolo: str, descrizione: str,
 
 
 async def _get_autori_evento(tipo: str, titolo: str) -> list:
-    """
-    Restituisce i tag di TUTTI gli autori che hanno registrato
-    eventi con lo stesso tipo+titolo (utile per eventi co-registrati).
-    """
     async with aiosqlite.connect(DATABASE_NAME) as db:
         async with db.execute(
             "SELECT DISTINCT autore_tag FROM gazzetta_eventi WHERE tipo=? AND titolo=?",
@@ -74,13 +70,13 @@ _TIPI = [
     "⚖️ Processo",
     "🚔 Arresto",
     "💀 Omicidio",
-    "🐎 Gara Equestre",
+    "🚗 Gara Automobilistica",
     "🃏 Torneo di Poker",
-    "🤠 Duello",
+    "🥊 Rissa / Scontro",
     "📜 Annuncio Ufficiale",
-    "🌵 Spedizione",
-    "🏕️ Accampamento",
-    "🎯 Caccia",
+    "📦 Spedizione / Traffico",
+    "🏠 Apertura Proprietà",
+    "🎯 Caccia / Missione",
     "💣 Attentato",
     "🤝 Accordo / Patto",
 ]
@@ -97,7 +93,7 @@ def setup_gazzetta_commands(bot: commands.Bot):
     # ── /registra-evento ──────────────────────────────────────────────────────
     @bot.tree.command(
         name="registra-evento",
-        description="[Giornalista] Registra un evento sulla Gazzetta del West"
+        description="[Giornalista] Registra un evento sulla Gazzetta di Los Santos"
     )
     @app_commands.describe(
         tipo="Categoria dell'evento (es. Rapina, Apertura Locale…)",
@@ -122,10 +118,8 @@ def setup_gazzetta_commands(bot: commands.Bot):
 
         await interaction.response.defer(ephemeral=True)
 
-        # ── Inizializza tabella (safe) ────────────────────────────────────────
         await _init_gazzetta_table()
 
-        # ── Salva nel DB ──────────────────────────────────────────────────────
         now_utc    = datetime.now(timezone.utc)
         now_str    = _ora_it(now_utc)
         autore_tag = str(interaction.user)
@@ -135,7 +129,6 @@ def setup_gazzetta_commands(bot: commands.Bot):
             tipo, titolo, descrizione, autore_id, autore_tag, now_str
         )
 
-        # ── Recupera tutti gli autori co-registrati per questo titolo+tipo ────
         tutti_autori = await _get_autori_evento(tipo, titolo)
         autori_mention = []
         if interaction.guild:
@@ -152,18 +145,18 @@ def setup_gazzetta_commands(bot: commands.Bot):
 
         # ── Costruisce l'embed ────────────────────────────────────────────────
         embed = discord.Embed(
-            color=discord.Color(0xC8A951),
+            color=discord.Color(0x1E90FF),
             timestamp=now_utc
         )
 
-        embed.set_author(name="GAZZETTA DEL WEST  •  Colorado Full RP")
+        embed.set_author(name="GAZZETTA DI LOS SANTOS  •  West Coast RP '93")
 
-        embed.title = "📰  𝑮𝑨𝒁𝒁𝑬𝑻𝑻𝑨  𝑫𝑬𝑳  𝑵𝑬𝑾 𝑨𝑼𝑺𝑻𝑰𝑵   <a:megafono:1431932605984542720>"
+        embed.title = "📰  𝑮𝑨𝒁𝒁𝑬𝑻𝑻𝑨  𝑫𝑰  𝑳𝑶𝑺  𝑺𝑨𝑵𝑻𝑶𝑺   <a:megafono:1431932605984542720>"
 
         embed.description = (
             "```\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "  𝑵𝑶𝑻𝑰𝒁𝑰𝑬  𝑫𝑨𝑳  𝑵𝑬𝑾 𝑨𝑼𝑺𝑻𝑰𝑵\n"
+            "  𝑵𝑶𝑻𝑰𝒁𝑰𝑬  𝑫𝑨  𝑳𝑶𝑺  𝑺𝑨𝑵𝑻𝑶𝑺\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             "```"
         )
@@ -205,7 +198,7 @@ def setup_gazzetta_commands(bot: commands.Bot):
         )
 
         embed.set_footer(
-            text="🤠  𝑮𝑨𝒁𝒁𝑬𝑻𝑻𝑨  𝑫𝑬𝑳  𝑵𝑬𝑾 𝑨𝑼𝑺𝑻𝑰𝑵  🤠  —  Colorado Full RP"
+            text="🏙️ West Coast RP '93 — Gazzetta di Los Santos"
         )
 
         # ── Invia nel canale gazzetta ─────────────────────────────────────────
@@ -232,15 +225,12 @@ def setup_gazzetta_commands(bot: commands.Bot):
             )
             return
 
-        # ── Conferma all'autore ───────────────────────────────────────────────
         confirm = discord.Embed(
             title="✅ Articolo pubblicato!",
             description=(
                 f"L'evento **{titolo}** è stato registrato e pubblicato\n"
-                f"sulla Gazzetta del West con ID `#{evento_id:04d}`."
+                f"sulla Gazzetta di Los Santos con ID `#{evento_id:04d}`."
             ),
             color=discord.Color.green()
         )
         await interaction.followup.send(embed=confirm, ephemeral=True)
-
-  
