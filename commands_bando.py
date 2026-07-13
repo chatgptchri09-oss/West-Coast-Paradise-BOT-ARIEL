@@ -19,17 +19,30 @@ def setup_bando_commands(bot):
             return
 
         if stato == "aperto":
-            color    = discord.Color.green()
-            titolo   = "<a:online:1525963385890410741> 𝐁𝐀𝐍𝐃𝐎 𝐀𝐏𝐄𝐑𝐓𝐎 <a:online:1525963385890410741>"
-            immagine = "https://i.postimg.cc/htny3bsk/585ED73F-B062-4585-8652-DA2F28167758.png"
+            color       = discord.Color.green()
+            titolo      = "<a:online:1525963385890410741> 𝐁𝐀𝐍𝐃𝐎 𝐀𝐏𝐄𝐑𝐓𝐎 <a:online:1525963385890410741>"
+            immagine    = "https://i.postimg.cc/htny3bsk/585ED73F-B062-4585-8652-DA2F28167758.png"
+            descrizione = (
+                "> 🌟 <a:freccia:1525975735099986130> Lo staff annuncia che le candidature per questo bando sono **UFFICIALMENTE APERTE!**\n"
+                "> **AFFRETTATEVI PRIMA CHE SIA TROPPO TARDI**"
+            )
         else:
-            color    = discord.Color.red()
-            titolo   = "<a:offline:1525963229056991254> 𝐁𝐀𝐍𝐃𝐎 𝐂𝐇𝐈𝐔𝐒𝐎 <a:offline:1525963229056991254>"
-            immagine = "https://i.postimg.cc/9FhYWX9F/055FF80F-60C4-4353-A87D-7D52C9FE7D9D.png"
+            color       = discord.Color.red()
+            titolo      = "<a:offline:1525963229056991254> 𝐁𝐀𝐍𝐃𝐎 𝐂𝐇𝐈𝐔𝐒𝐎 <a:offline:1525963229056991254>"
+            immagine    = "https://i.postimg.cc/9FhYWX9F/055FF80F-60C4-4353-A87D-7D52C9FE7D9D.png"
+            descrizione = (
+                "> 🔒 <a:freccia:1525975735099986130> Lo staff comunica che le candidature per questo bando sono **UFFICIALMENTE CHIUSE.**\n"
+                "> **Grazie a tutti coloro che si sono candidati. Riceverete presto una risposta.**"
+            )
 
-        embed = discord.Embed(title=titolo, color=color, timestamp=discord.utils.utcnow())
+        embed = discord.Embed(
+            title=titolo,
+            description=descrizione,
+            color=color,
+            timestamp=discord.utils.utcnow()
+        )
         embed.set_image(url=immagine)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Bando Lavorativo")
+        embed.set_footer(text="🏙️ West Coast RP — Bando Lavorativo")
 
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("✅ Bando pubblicato!", ephemeral=True)
@@ -41,8 +54,7 @@ def setup_bando_commands(bot):
         except Exception:
             pass
 
-    # ------------------------------------------------------------------ #
-
+    # ── /esito-bando ──────────────────────────────────────────────────────────
     @bot.tree.command(name="esito-bando", description="[Staff] Comunica l'esito di un bando lavorativo")
     @app_commands.describe(
         giocatore="Il candidato",
@@ -69,7 +81,6 @@ def setup_bando_commands(bot):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
             return
 
-        # Assegna i 2 ruoli solo se assunto
         if esito == "assunto":
             try:
                 await giocatore.add_roles(lavoro, reason=f"Bando lavorativo — assunto da {interaction.user}")
@@ -90,26 +101,24 @@ def setup_bando_commands(bot):
         )
         embed.set_thumbnail(url=giocatore.display_avatar.url)
         embed.add_field(name="👤 Candidato",   value=giocatore.mention,        inline=True)
-        embed.add_field(name="🤠 Lavoro",      value=lavoro.mention,           inline=True)
+        embed.add_field(name="🚗 Lavoro",      value=lavoro.mention,           inline=True)
         embed.add_field(name="🎖️ Grado",      value=grado.mention,            inline=True)
         embed.add_field(name="📋 Esito",       value=esito.capitalize(),       inline=True)
         if motivazione:
             embed.add_field(name="📝 Motivazione", value=motivazione, inline=False)
         embed.add_field(name="👮 Valutato da", value=interaction.user.mention, inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Bando Lavorativo")
+        embed.set_footer(text="🏙️ West Coast RP — Bando Lavorativo")
 
-        # Risposta nel canale
         await interaction.response.send_message(embed=embed)
 
-        # DM al giocatore
         try:
             dm_embed = discord.Embed(
                 title=f"{emoji} Esito del tuo Bando — {esito.capitalize()}",
                 color=color,
                 timestamp=discord.utils.utcnow()
             )
-            dm_embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
-            dm_embed.add_field(name="🤠 Lavoro",  value=lavoro.name,        inline=True)
+            dm_embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild and interaction.guild.icon else None)
+            dm_embed.add_field(name="🚗 Lavoro", value=lavoro.name,        inline=True)
             dm_embed.add_field(name="🎖️ Grado",  value=grado.name,         inline=True)
             dm_embed.add_field(name="📋 Esito",   value=esito.capitalize(),  inline=True)
             if esito == "assunto":
@@ -127,12 +136,11 @@ def setup_bando_commands(bot):
             if motivazione:
                 dm_embed.add_field(name="📝 Motivazione", value=motivazione, inline=False)
             dm_embed.add_field(name="👮 Valutato da", value=str(interaction.user), inline=False)
-            dm_embed.set_footer(text="🤠 Red Dead Redemption II — Bando Lavorativo")
+            dm_embed.set_footer(text="🏙️ West Coast RP — Bando Lavorativo")
             await giocatore.send(embed=dm_embed)
         except discord.Forbidden:
             pass
 
-        # Log
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
