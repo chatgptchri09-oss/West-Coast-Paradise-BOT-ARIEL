@@ -3,70 +3,70 @@ from discord import app_commands
 import database
 from constants import LOG_CHANNEL_ID, has_sceriffo
 
-# Canale dove viene postato il manifesto della taglia
-RICERCATI_CHANNEL_ID = 1525157991123390475
-CITTADINI_ROLE_ID    = 1414752091607535727
+# Canale dove viene postato il manifesto dei ricercati
+RICERCATI_CHANNEL_ID = 1525157991123390475   # ⚠️ DA AGGIORNARE con il nuovo ID canale GTA
+CITTADINI_ROLE_ID    = 1414752091607535727   # ⚠️ DA AGGIORNARE con il nuovo ID ruolo cittadini
 
 
 def setup_fine_commands(bot):
 
-    # ── /taglia ───────────────────────────────────────────────────────────────
-    @bot.tree.command(name="taglia", description="[FDO] Emetti una taglia su un fuorilegge")
+    # ── /multa ────────────────────────────────────────────────────────────────
+    @bot.tree.command(name="multa", description="[FDO] Emetti una multa su un sospettato")
     @app_commands.describe(
-        fuorilegge="Il fuorilegge",
-        importo="Valore della taglia",
+        sospettato="Il sospettato",
+        importo="Valore della multa",
         motivo="Motivazione",
-        foto="Foto del ricercato (opzionale)"
+        foto="Foto del sospettato (opzionale)"
     )
     async def taglia(
         interaction: discord.Interaction,
-        fuorilegge: discord.Member,
+        sospettato: discord.Member,
         importo: int,
         motivo: str,
         foto: discord.Attachment = None
     ):
         if not has_sceriffo(interaction):
-            await interaction.response.send_message("❌ Solo lo Sceriffo può emettere taglie.", ephemeral=True)
+            await interaction.response.send_message("❌ Solo le FDO possono emettere multe.", ephemeral=True)
             return
         if importo <= 0:
             await interaction.response.send_message("❌ Importo non valido.", ephemeral=True)
             return
 
-        await database.add_fine(str(fuorilegge.id), importo, motivo, interaction.user.display_name)
+        await database.add_fine(str(sospettato.id), importo, motivo, interaction.user.display_name)
 
         # ── Embed principale (nel canale corrente) ────────────────────────────
         embed = discord.Embed(
-            title="⭐ 𝐓𝐀𝐆𝐋𝐈𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
-            color=discord.Color(0xDAA520),
+            title="🚔 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
-        embed.set_thumbnail(url=fuorilegge.display_avatar.url)
-        embed.add_field(name="🤠 Fuorilegge", value=fuorilegge.mention,       inline=True)
-        embed.add_field(name="💰 Taglia",     value=f"${importo:,}",          inline=True)
-        embed.add_field(name="📋 Motivo",     value=motivo,                   inline=False)
-        embed.add_field(name="⭐ Sceriffo",   value=interaction.user.mention, inline=True)
+        embed.set_thumbnail(url=sospettato.display_avatar.url)
+        embed.add_field(name="🧑 Sospettato",  value=sospettato.mention,        inline=True)
+        embed.add_field(name="💰 Multa",        value=f"${importo:,}",           inline=True)
+        embed.add_field(name="📋 Motivo",       value=motivo,                    inline=False)
+        embed.add_field(name="👮 Agente FDO",   value=interaction.user.mention,  inline=True)
         if foto and foto.content_type and foto.content_type.startswith("image/"):
             embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Ufficio dello Sceriffo")
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
         await interaction.response.send_message(embed=embed)
 
-        # ── Manifesto nel canale ricercati ────────────────────────────────────
+        # ── Annuncio nel canale ricercati ─────────────────────────────────────
         try:
             ricercati_ch = bot.get_channel(RICERCATI_CHANNEL_ID)
             if ricercati_ch:
                 manifesto = discord.Embed(
-                    title="🔴 𝐑𝐈𝐂𝐄𝐑𝐂𝐀𝐓𝐎 — 𝐓𝐀𝐆𝐋𝐈𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
+                    title="🔴 𝐑𝐈𝐂𝐄𝐑𝐂𝐀𝐓𝐎 — 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
                     color=discord.Color.red(),
                     timestamp=discord.utils.utcnow()
                 )
-                manifesto.set_thumbnail(url=fuorilegge.display_avatar.url)
-                manifesto.add_field(name="🤠 Nome",    value=fuorilegge.mention,       inline=True)
-                manifesto.add_field(name="💰 Taglia",  value=f"${importo:,}",          inline=True)
-                manifesto.add_field(name="📋 Crimine", value=motivo,                   inline=False)
-                manifesto.add_field(name="⭐ Emessa da", value=interaction.user.mention, inline=True)
+                manifesto.set_thumbnail(url=sospettato.display_avatar.url)
+                manifesto.add_field(name="🧑 Nome",      value=sospettato.mention,       inline=True)
+                manifesto.add_field(name="💰 Multa",     value=f"${importo:,}",          inline=True)
+                manifesto.add_field(name="📋 Reato",     value=motivo,                   inline=False)
+                manifesto.add_field(name="👮 Emessa da", value=interaction.user.mention, inline=True)
                 if foto and foto.content_type and foto.content_type.startswith("image/"):
                     manifesto.set_image(url=foto.url)
-                manifesto.set_footer(text="🤠 Red Dead Redemption II — Ufficio dello Sceriffo")
+                manifesto.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
                 await ricercati_ch.send(
                     content=f"<@&{CITTADINI_ROLE_ID}>",
                     embed=manifesto
@@ -74,13 +74,13 @@ def setup_fine_commands(bot):
         except Exception:
             pass
 
-        # ── DM al fuorilegge ──────────────────────────────────────────────────
+        # ── DM al sospettato ──────────────────────────────────────────────────
         try:
-            await fuorilegge.send(embed=discord.Embed(
-                title="⭐ 𝐇𝐚𝐢 𝐮𝐧𝐚 𝐭𝐚𝐠𝐥𝐢𝐚 𝐬𝐮𝐥𝐥𝐚 𝐭𝐞𝐬𝐭𝐚!",
+            await sospettato.send(embed=discord.Embed(
+                title="🚔 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧𝐚 𝐦𝐮𝐥𝐭𝐚!",
                 description=(
-                    f"Lo Sceriffo **{interaction.user.display_name}** ha messo una taglia "
-                    f"di **${importo:,}** su di te.\n**Motivo:** {motivo}"
+                    f"L'agente **{interaction.user.display_name}** ti ha comminato una multa "
+                    f"di **${importo:,}**.\n**Motivo:** {motivo}"
                 ),
                 color=discord.Color.red()
             ))
@@ -95,19 +95,19 @@ def setup_fine_commands(bot):
         except Exception:
             pass
 
-    # ── /paga-taglia ──────────────────────────────────────────────────────────
-    @bot.tree.command(name="paga-taglia", description="Paga le taglie sulla tua testa")
+    # ── /paga-multa ───────────────────────────────────────────────────────────
+    @bot.tree.command(name="paga-multa", description="Paga le multe a tuo carico")
     async def paga_taglia(interaction: discord.Interaction):
         uid   = str(interaction.user.id)
         fines = await database.get_fines(uid)
         if not fines:
-            await interaction.response.send_message("✅ Non hai taglie attive!", ephemeral=True)
+            await interaction.response.send_message("✅ Non hai multe attive!", ephemeral=True)
             return
         totale = sum(f["amount"] for f in fines)
         user   = await database.get_user(uid)
         if user["cash"] < totale:
             await interaction.response.send_message(
-                f"❌ Contanti insufficienti.\nTotale taglie: **${totale:,}** — Tuoi: **${user['cash']:,}**",
+                f"❌ Contanti insufficienti.\nTotale multe: **${totale:,}** — Tuoi: **${user['cash']:,}**",
                 ephemeral=True
             )
             return
@@ -115,16 +115,16 @@ def setup_fine_commands(bot):
         for f in fines:
             await database.pay_fine(f["id"])
         embed = discord.Embed(
-            title="✅ 𝐓𝐚𝐠𝐥𝐢𝐞 𝐒𝐚𝐥𝐝𝐚𝐭𝐞",
-            description=f"Hai pagato **${totale:,}**. Sei tornato un uomo libero.",
+            title="✅ 𝐌𝐮𝐥𝐭𝐞 𝐒𝐚𝐥𝐝𝐚𝐭𝐞",
+            description=f"Hai pagato **${totale:,}**. Sei tornato in regola con la legge.",
             color=discord.Color.green(),
             timestamp=discord.utils.utcnow()
         )
-        embed.set_footer(text="🤠 Red Dead Redemption II — Sceriffo")
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ── /controlla-taglia ─────────────────────────────────────────────────────
-    @bot.tree.command(name="controlla-taglia", description="[FDO] Verifica le taglie di un giocatore")
+    # ── /controlla-multa ──────────────────────────────────────────────────────
+    @bot.tree.command(name="controlla-multa", description="[FDO] Verifica le multe di un giocatore")
     @app_commands.describe(giocatore="Il giocatore")
     async def controlla_taglia(interaction: discord.Interaction, giocatore: discord.Member):
         if not has_sceriffo(interaction):
@@ -133,22 +133,22 @@ def setup_fine_commands(bot):
         await interaction.response.defer(ephemeral=True)
         fines = await database.get_fines(str(giocatore.id))
         embed = discord.Embed(
-            title=f"⭐ 𝐓𝐚𝐠𝐥𝐢𝐞 𝐝𝐢 {giocatore.display_name}",
-            color=discord.Color(0xDAA520),
+            title=f"🚔 𝐌𝐮𝐥𝐭𝐞 𝐝𝐢 {giocatore.display_name}",
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_thumbnail(url=giocatore.display_avatar.url)
         if not fines:
-            embed.description = "✅ Nessuna taglia attiva."
+            embed.description = "✅ Nessuna multa attiva."
         else:
             for f in fines:
                 embed.add_field(
-                    name=f"Taglia #{f['id']} — ${f['amount']:,}",
+                    name=f"Multa #{f['id']} — ${f['amount']:,}",
                     value=f"📋 {f['reason']}\n👮 {f['issued_by']}\n📅 {f['created_at']}",
                     inline=False
                 )
             embed.add_field(name="💰 Totale", value=f"${sum(f['amount'] for f in fines):,}", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Sceriffo")
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     # ── /assegno ──────────────────────────────────────────────────────────────
@@ -174,7 +174,6 @@ def setup_fine_commands(bot):
         uid      = str(interaction.user.id)
         mittente = await database.get_user(uid)
 
-        # I soldi DEVONO essere in banca
         if mittente["bank"] < importo:
             await interaction.response.send_message(
                 f"❌ Fondi bancari insufficienti!\n"
@@ -186,9 +185,7 @@ def setup_fine_commands(bot):
 
         dest = await database.get_user(str(destinatario.id))
 
-        # Scala dalla banca del mittente
         await database.update_balance(uid, bank=mittente["bank"] - importo)
-        # Aggiunge alla banca del destinatario
         await database.update_balance(str(destinatario.id), bank=dest["bank"] + importo)
 
         embed = discord.Embed(
@@ -197,12 +194,12 @@ def setup_fine_commands(bot):
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        embed.add_field(name="👤 Mittente",    value=interaction.user.mention, inline=True)
-        embed.add_field(name="🎯 Destinatario", value=destinatario.mention,    inline=True)
-        embed.add_field(name="\u200b",          value="\u200b",                inline=False)
-        embed.add_field(name="💵 Importo",      value=f"${importo:,}",         inline=True)
-        embed.add_field(name="📋 Motivazione",  value=motivazione,             inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Assegno Bancario")
+        embed.add_field(name="👤 Mittente",     value=interaction.user.mention, inline=True)
+        embed.add_field(name="🎯 Destinatario", value=destinatario.mention,     inline=True)
+        embed.add_field(name="\u200b",           value="\u200b",                inline=False)
+        embed.add_field(name="💵 Importo",       value=f"${importo:,}",         inline=True)
+        embed.add_field(name="📋 Motivazione",   value=motivazione,             inline=False)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Assegno Bancario")
         await interaction.response.send_message(embed=embed)
 
         # ── DM al destinatario ────────────────────────────────────────────────
