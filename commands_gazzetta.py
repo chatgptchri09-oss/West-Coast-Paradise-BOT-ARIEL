@@ -6,9 +6,9 @@ from datetime import datetime, timezone, timedelta
 from constants import LOG_CHANNEL_ID
 
 # ── Configurazione ────────────────────────────────────────────────────────────
-GAZZETTA_CHANNEL_ID   = 1404052251982565447   # Canale dove appare la gazzetta
-GIORNALISTA_ROLE_ID   = 1404052056028872775   # Ruolo abilitato al comando
-NOTIFICA_ROLE_ID      = 1404052056028872775   # Ruolo che riceve la notifica (@&)
+GAZZETTA_CHANNEL_ID   = 1525157991123390475   # Canale dove appare la gazzetta
+GIORNALISTA_ROLE_ID   = 1431390676444123186   # Ruolo abilitato al comando
+NOTIFICA_ROLE_ID      = 1414752091607535727   # Ruolo che riceve la notifica (@&)
 DATABASE_NAME         = "rdr2.db"             # Stesso DB del bot
 
 # ── Timezone Italia ───────────────────────────────────────────────────────────
