@@ -4,8 +4,8 @@ import database
 from constants import LOG_CHANNEL_ID, has_sceriffo
 
 # Canale dove viene postato il manifesto della taglia
-RICERCATI_CHANNEL_ID = 1418579324554055771
-CITTADINI_ROLE_ID    = 1404052056028872775
+RICERCATI_CHANNEL_ID = 1525157991123390475
+CITTADINI_ROLE_ID    = 1414752091607535727
 
 
 def setup_fine_commands(bot):
