@@ -24,16 +24,16 @@ ITEMS_PER_PAGE = 5
 # ── Helper embed emporio ──────────────────────────────────────────────────────
 def _build_shop_embed(page_items: list, page: int, tot: int) -> discord.Embed:
     embed = discord.Embed(
-        title="🏪 𝐍𝐞𝐠𝐨𝐳𝐢𝐨 𝐝𝐞𝐥 𝐅𝐚𝐫 𝐖𝐞𝐬𝐭",
-        description="Benvenuto, cowboy! Acquista con `/item-sell`." if page_items else "*L'emporio è vuoto per ora...*",
-        color=discord.Color(0xDAA520),
+        title="🏪 𝐍𝐞𝐠𝐨𝐳𝐢𝐨 𝐝𝐢 𝐋𝐨𝐬 𝐒𝐚𝐧𝐭𝐨𝐬",
+        description="Benvenuto! Acquista con `/item-sell`." if page_items else "*Il negozio è vuoto per ora...*",
+        color=discord.Color(0x1E90FF),
         timestamp=discord.utils.utcnow()
     )
     for item in page_items:
         ruolo_line = f"\n🔑 **Ruolo:** <@&{item['required_role']}>" if item.get("required_role") else ""
         desc_line  = f"\n_{item['description']}_" if item.get("description") else ""
         embed.add_field(name=item["item_name"], value=f"{desc_line}{ruolo_line}" or "—", inline=True)
-    embed.set_footer(text=f"🤠 Red Dead Redemption II — Emporio | Pagina {page+1}/{tot}")
+    embed.set_footer(text=f"🏙️ West Coast RP '93 — Negozio | Pagina {page+1}/{tot}")
     return embed
 
 
@@ -72,8 +72,8 @@ class ShopView(discord.ui.View):
         )
 
 
-# ── View paginazione bisaccia (a livello modulo per persistenza callback) ──────
-class BisacciaPageView(discord.ui.View):
+# ── View paginazione inventario (a livello modulo per persistenza callback) ────
+class InventarioPageView(discord.ui.View):
     def __init__(self, all_items: list, titolo: str, hunger: int, thirst: int,
                  avatar_url: str, page: int = 0):
         super().__init__(timeout=120)
@@ -94,18 +94,18 @@ class BisacciaPageView(discord.ui.View):
         return self._all[p * ITEMS_PER_PAGE:(p + 1) * ITEMS_PER_PAGE]
 
     def _build_embed(self, p: int) -> discord.Embed:
-        embed = discord.Embed(title=self._titolo, color=discord.Color(0x8B4513),
+        embed = discord.Embed(title=self._titolo, color=discord.Color(0x1E90FF),
                               timestamp=discord.utils.utcnow())
         embed.set_thumbnail(url=self._avatar)
         embed.add_field(name="🍔 Fame", value=self._bar(self._hunger), inline=True)
         embed.add_field(name="💦 Sete", value=self._bar(self._thirst), inline=True)
         page_items = self._get_page(p)
         if not self._all:
-            embed.add_field(name="📦 Contenuto", value="*Bisaccia vuota.*", inline=False)
+            embed.add_field(name="📦 Contenuto", value="*Inventario vuoto.*", inline=False)
         else:
             desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in page_items)
             embed.add_field(name="📦 Contenuto", value=desc, inline=False)
-        embed.set_footer(text=f"🤠 Red Dead Redemption II — Bisaccia | Pagina {p+1}/{self._tot}")
+        embed.set_footer(text=f"🏙️ West Coast RP '93 — Inventario | Pagina {p+1}/{self._tot}")
         return embed
 
     def _update_buttons(self):
@@ -134,7 +134,7 @@ def setup_inventory_commands(bot):
         matches = _fuzzy(current, names)
         return [app_commands.Choice(name=m, value=m) for m in matches[:25]]
 
-    # ── /listino-emporio ──────────────────────────────────────────────────────
+    # ── /negozio ──────────────────────────────────────────────────────────────
     @bot.tree.command(name="negozio", description="Visualizza il negozio degli item disponibili")
     async def itemshop(interaction: discord.Interaction):
         all_items = await database.get_shop_items()
@@ -210,21 +210,21 @@ def setup_inventory_commands(bot):
         print(f"[item-sell] OK, invio embed", flush=True)
         embed = discord.Embed(
             title="✅ 𝐀𝐜𝐪𝐮𝐢𝐬𝐭𝐨 𝐂𝐨𝐦𝐩𝐥𝐞𝐭𝐚𝐭𝐨",
-            color=discord.Color(0x8B4513),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.add_field(name="📦 Item",     value=nome_item,                       inline=True)
         embed.add_field(name="🔢 Quantità", value=str(quantita),                   inline=True)
         embed.add_field(name="💵 Pagato",   value=f"${totale:,}",                  inline=True)
         embed.add_field(name="💰 Rimasto",  value=f"${user_data['cash']-totale:,}", inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Emporio")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Negozio")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         print(f"[item-sell] DONE", flush=True)
 
     # ── /crea-item ────────────────────────────────────────────────────────────
     @bot.tree.command(name="crea-item", description="[Staff] Crea un nuovo item nell'emporio")
     @app_commands.describe(
-        nome="Nome item (es: 🥃 • Whisky)",
+        nome="Nome item (es: 🔫 • Pistola)",
         ruolo_richiesto="Ruolo Discord richiesto per ottenere l'item",
         descrizione="Descrizione breve (facoltativa)"
     )
@@ -247,7 +247,7 @@ def setup_inventory_commands(bot):
         embed.add_field(name="🔑 Ruolo Richiesto", value=f"<@&{role_id}>", inline=True)
         if descrizione:
             embed.add_field(name="📝 Descrizione", value=descrizione, inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
         await interaction.response.send_message(embed=embed)
 
     # ── /eliminaitem ─────────────────────────────────────────────────────────
@@ -267,7 +267,7 @@ def setup_inventory_commands(bot):
         names = [i["item_name"] for i in items]
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, names)[:25]]
 
-    async def _bisaccia_autocomplete(interaction: discord.Interaction, current: str):
+    async def _inventario_autocomplete(interaction: discord.Interaction, current: str):
         try:
             giocatore_id = interaction.namespace.giocatore
             if not giocatore_id:
@@ -300,10 +300,10 @@ def setup_inventory_commands(bot):
             embed = discord.Embed(
                 title="🔍 Trovati più item con questo nome:",
                 description="Seleziona l'item da consegnare dal menu qui sotto.",
-                color=discord.Color(0xDAA520),
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
-            embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
 
             class GiveSelect(discord.ui.Select):
                 def __init__(self_s):
@@ -319,7 +319,7 @@ def setup_inventory_commands(bot):
                     done.add_field(name="📦 Item",        value=chosen,            inline=True)
                     done.add_field(name="🔢 Quantità",    value=str(quantita),     inline=True)
                     done.add_field(name="👮 Staff",       value=itr.user.mention,  inline=True)
-                    done.set_footer(text="🤠 Red Dead Redemption II — Admin")
+                    done.set_footer(text="🏙️ West Coast RP '93 — Admin")
                     await itr.response.edit_message(embed=done, view=None)
 
             view = discord.ui.View(timeout=60)
@@ -334,13 +334,13 @@ def setup_inventory_commands(bot):
         embed.add_field(name="📦 Item",        value=item_finale,              inline=True)
         embed.add_field(name="🔢 Quantità",    value=str(quantita),            inline=True)
         embed.add_field(name="👮 Staff",       value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
         await interaction.response.send_message(embed=embed)
 
     # ── /take-item ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="take-item", description="[Staff] Rimuovi un item dalla bisaccia di un giocatore")
-    @app_commands.describe(giocatore="Il giocatore", item="Nome item (fuzzy search nella bisaccia)", quantita="Quantità")
-    @app_commands.autocomplete(item=_bisaccia_autocomplete)
+    @bot.tree.command(name="take-item", description="[Staff] Rimuovi un item dall'inventario di un giocatore")
+    @app_commands.describe(giocatore="Il giocatore", item="Nome item (fuzzy search nell'inventario)", quantita="Quantità")
+    @app_commands.autocomplete(item=_inventario_autocomplete)
     async def take_item(interaction: discord.Interaction, giocatore: discord.Member, item: str, quantita: int = 1):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi necessari.", ephemeral=True)
@@ -362,11 +362,11 @@ def setup_inventory_commands(bot):
         else:
             embed = discord.Embed(
                 title="🔍 Trovati più item con questo nome:",
-                description=f"Seleziona l'item da rimuovere dalla bisaccia di **{giocatore.display_name}**.",
-                color=discord.Color(0x8B4513),
+                description=f"Seleziona l'item da rimuovere dall'inventario di **{giocatore.display_name}**.",
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
-            embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
 
             class TakeSelect(discord.ui.Select):
                 def __init__(self_s):
@@ -390,7 +390,7 @@ def setup_inventory_commands(bot):
                     done.add_field(name="📦 Item",      value=chosen,            inline=True)
                     done.add_field(name="🔢 Quantità",  value=str(quantita),     inline=True)
                     done.add_field(name="👮 Staff",     value=itr.user.mention,  inline=True)
-                    done.set_footer(text="🤠 Red Dead Redemption II — Admin")
+                    done.set_footer(text="🏙️ West Coast RP '93 — Admin")
                     await itr.response.edit_message(embed=done, view=None)
 
             view = discord.ui.View(timeout=60)
@@ -409,22 +409,22 @@ def setup_inventory_commands(bot):
         embed.add_field(name="📦 Item",      value=item_finale,              inline=True)
         embed.add_field(name="🔢 Quantità",  value=str(quantita),            inline=True)
         embed.add_field(name="👮 Staff",     value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
         await interaction.response.send_message(embed=embed)
 
-    # ── /rimuovibisaccia ──────────────────────────────────────────────────────
-    @bot.tree.command(name="rimuovibisaccia", description="[Staff] Rimuovi la bisaccia di un giocatore")
+    # ── /rimuoviinventario ────────────────────────────────────────────────────
+    @bot.tree.command(name="rimuoviinventario", description="[Staff] Rimuovi l'inventario di un giocatore")
     @app_commands.describe(giocatore="Il giocatore")
-    async def rimuovi_bisaccia(interaction: discord.Interaction, giocatore: discord.Member):
+    async def rimuovi_inventario(interaction: discord.Interaction, giocatore: discord.Member):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi necessari.", ephemeral=True)
             return
         async with aiosqlite.connect(DATABASE_NAME) as db:
             await db.execute("DELETE FROM inventory WHERE user_id=?", (str(giocatore.id),))
             await db.commit()
-        embed = discord.Embed(title="🗑️ 𝐁𝐢𝐬𝐚𝐜𝐜𝐢𝐚 𝐑𝐢𝐦𝐨𝐬𝐬𝐚", color=discord.Color.red(),
+        embed = discord.Embed(title="🗑️ 𝐈𝐧𝐯𝐞𝐧𝐭𝐚𝐫𝐢𝐨 𝐑𝐢𝐦𝐨𝐬𝐬𝐨", color=discord.Color.red(),
                               timestamp=discord.utils.utcnow())
         embed.add_field(name="👤 Giocatore", value=giocatore.mention,        inline=True)
         embed.add_field(name="👮 Staff",     value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Admin")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Admin")
         await interaction.response.send_message(embed=embed)
