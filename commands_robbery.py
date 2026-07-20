@@ -10,8 +10,8 @@ def _criminali_attivi() -> bool:
         return True
 
 # Ruoli da menzionare sopra l'embed
-SCERIFFO_PING  = 1404051916140449885
-CRIMINALI_PING = 1420468587998478376
+FORZEDELLORDINE_PING  = 1524525114526269470
+CRIMINALI_PING = 1525774939796406292
 
 # Dati rapine dalla tabella ufficiale
 RAPINE = {
