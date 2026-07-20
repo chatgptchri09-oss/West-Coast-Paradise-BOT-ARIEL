@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 import database
 
-AGENCY_ROLE = 1404051965364670545
+AGENZIA_ROLE = 1424381004944244828
 
 
 def has_staff(interaction: discord.Interaction) -> bool:
