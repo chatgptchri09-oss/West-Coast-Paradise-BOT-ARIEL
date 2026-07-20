@@ -11,19 +11,21 @@ from constants import (
     LOG_PEGASUS_CH, LOG_NOTARIATO_CH, LOG_YELLOWJACK_CH, LOG_COUNTYDONUTS_CH, LOG_COUNTYIMPOUND_CH,
 )
 
+
+LOG_BANCA_CH = 1525863299714121908
+LOG_MARKET_CH = 1424111628374511729
 # Percentuale che va all'emittente (il resto va al fondo cassa azienda)
 PERCENTUALE_EMITTENTE = 0.25
 
 # NOTA: nomi allineati a COMPANY_ROLES/COMPANY_EMOJI in constants.py e commands_fondocassa.py
-# ⚠️ Banca e Market non hanno un canale log dedicato: uso LOG_CHANNEL_ID come fallback.
-#     Se vuoi canali log separati per Palomino Bank e Supermarket, mandami gli ID.
+
 AZIENDE_CONFIG = {
     "Armeria":        {"ruolo": ARMERIA_ROLE_ID,             "log_ch": LOG_ARMERIA_CH,       "emoji": "🔫", "fondocassa": "Armeria"},
     "Concessionario":  {"ruolo": CONCESSIONARIO_ROLE_ID,      "log_ch": LOG_CONCESSIONARIO_CH, "emoji": "🚗", "fondocassa": "Concessionario"},
     "Meccanico":       {"ruolo": MECCANICO_ROLE_ID,           "log_ch": LOG_MECCANICO_CH,     "emoji": "🔧", "fondocassa": "Meccanico"},
     "Agenzia Imm.":    {"ruolo": AGENZIA_IMMOBILIARE_ROLE_ID, "log_ch": LOG_AGENZIA_CH,       "emoji": "🏠", "fondocassa": "Agenzia Imm."},
-    "Banca":           {"ruolo": BANCA_ROLE_ID,               "log_ch": LOG_CHANNEL_ID,       "emoji": "🏦", "fondocassa": "Banca"},
-    "Market":          {"ruolo": MARKET_ROLE_ID,              "log_ch": LOG_CHANNEL_ID,       "emoji": "🛒", "fondocassa": "Market"},
+    "Banca":           {"ruolo": BANCA_ROLE_ID,               "log_ch": LOG_BANCA_CH,         "emoji": "🏦", "fondocassa": "Banca"},
+    "Market":          {"ruolo": MARKET_ROLE_ID,              "log_ch": LOG_MARKET_CH,       "emoji": "🛒", "fondocassa": "Market"},
     "Pegasus":         {"ruolo": PEGASUS_ROLE_ID,             "log_ch": LOG_PEGASUS_CH,       "emoji": "✈️", "fondocassa": "Pegasus"},
     "Notariato":       {"ruolo": NOTARIATO_ROLE_ID,           "log_ch": LOG_NOTARIATO_CH,     "emoji": "📝", "fondocassa": "Notariato"},
     "Bar":             {"ruolo": BAR_ROLE_ID,                 "log_ch": LOG_YELLOWJACK_CH,    "emoji": "🍻", "fondocassa": "Bar"},
