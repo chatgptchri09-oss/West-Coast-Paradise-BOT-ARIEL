@@ -22,13 +22,13 @@ ITEMS_PER_PAGE = 5
 
 # ── Zaino ──────────────────────────────────────────────────────────────────────
 ZAINO_ITEM_NAME = "🎒 | Zaino"
-ZAINO_PREZZO     = 50
+ZAINO_PREZZO     = 0
 
 
 # ── Helper embed emporio ──────────────────────────────────────────────────────
 def _build_shop_embed(page_items: list, page: int, tot: int) -> discord.Embed:
     embed = discord.Embed(
-        title="🏪 𝐍𝐞𝐠𝐨𝐳𝐢𝐨 𝐝𝐢 𝐋𝐨𝐬 𝐒𝐚𝐧𝐭𝐨𝐬",
+        title="🏪 𝐒𝐮𝐩𝐞𝐫𝐦𝐚𝐫𝐤𝐞𝐭 𝐝𝐢 𝐁𝐥𝐚𝐢𝐧𝐞 𝐂𝐨𝐮𝐧𝐭𝐲",
         description="Benvenuto! Acquista con `/item-sell`." if page_items else "*Il negozio è vuoto per ora...*",
         color=discord.Color(0x1E90FF),
         timestamp=discord.utils.utcnow()
