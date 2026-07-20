@@ -17,13 +17,10 @@ def _ora_italia(dt: datetime) -> str:
     """Converte un datetime UTC in orario italiano formattato."""
     if TZ_ITALIA:
         return dt.astimezone(TZ_ITALIA).strftime("%H:%M")
-    # Fallback manuale: controlla se siamo in ora legale (ultima domenica marzo - ultima domenica ottobre)
-    # Usa UTC+2 da fine marzo a fine ottobre, UTC+1 altrimenti
     month = dt.month
     if 4 <= month <= 9:
         offset = 2
     elif month == 3:
-        # Ultima domenica di marzo
         last_sun = max(d for d in range(25, 32) if datetime(dt.year, 3, d).weekday() == 6)
         offset = 2 if dt.day >= last_sun else 1
     elif month == 10:
@@ -35,56 +32,69 @@ def _ora_italia(dt: datetime) -> str:
 import math
 from constants import (
     LOG_CHANNEL_ID, DATABASE_NAME, STAFF_ROLES, STAFF_ROLE_ID,
-    SCERIFFO_ROLE_ID, DOTTORE_ROLE_ID, ARMIERE_ROLE_ID,
-    STALLA_ROLE_ID, SALOON_ROLE_ID, EMPORIO_ROLE_ID,
-    CONTRABBANDO_ID, DILIGENZA_ROLE_ID, STATO_ROLE_ID
+    FORZEDELLORDINE_ROLE_ID, DOTTORE_ROLE_ID, ARMERIA_ROLE_ID,
+    BAR_ROLE_ID, MARKET_ROLE_ID, CONTRABBANDO_DOC_ROLE_ID, STATO_ROLE_ID
 )
 
 # Canale dove va la notifica stipendio per lo staff
-STIPENDIO_CHANNEL_ID = 1452975451587870793
+STIPENDIO_CHANNEL_ID = 1422986030650228766
+
+# ── Zaino: va acquistato con /compra-zaino prima di poter essere usato ────────
+ZAINO_ITEM_NAME = "🎒 | Zaino"
+
+async def _has_zaino(uid: str) -> bool:
+    return await database.get_item_quantity(uid, ZAINO_ITEM_NAME) >= 1
+
+async def _blocca_senza_zaino(interaction: discord.Interaction) -> bool:
+    """Ritorna True (e risponde con errore) se l'utente non ha lo zaino."""
+    if not await _has_zaino(str(interaction.user.id)):
+        await interaction.response.send_message(
+            "❌ Non hai uno **zaino**! Comprane uno con `/compra-zaino` prima di usare questo comando.",
+            ephemeral=True
+        )
+        return True
+    return False
 
 # Turni attivi: ora persistenti nel DB (tabella turni_attivi)
-# Il dizionario in memoria serve solo come cache per i role object Discord
 _turni_cache: dict = {}  # user_id → discord.Role object (non serializzabile)
 
-# ── Cibi (Listino Saloon) ─────────────────────────────────────────────────────
+# ── Cibi (Listino stile anni '90 — Los Santos) ─────────────────────────────────
 FOOD_ITEMS = {
-    "🥪 • Panino col prosciutto":                     15,
-    "🥪 • Panino con lattuga e prosciutto":           10,
-    "🥪 • Panino con lattuga, prosciutto e pomodoro": 13,
-    "🥪 • Panino farcito a piacere":                  9,   # prezzo variabile
-    "🍝 • Pasta al sugo":                             14,
-    "🍝 • Pasta al pesto":                           17,
-    "🥩 • Stufato di bistecca con verdure":          30,
-    "🥫 • Cibo in scatola":                           9,
-    "🍎 • Frutta":                                    8,
-    "🌽 • Verdura":                                   9,
-    "🧀 • Formaggio":                                10,
-    "🥚 • Uova":                                      20,
-    "🥩 • Salumi":                                   25,
-    "🍪 • Biscotti":                                  10,
-    "🥖 • Pane":                                      10,
-    "🍫 • Dolciumi":                                  5,
+    "🍔 • Burger doppio":                18,
+    "🌭 • Hot dog di strada":            12,
+    "🌮 • Taco messicano":               11,
+    "🍕 • Trancio di pizza":             14,
+    "🥪 • Panino al pastrami":           15,
+    "🥯 • Bagel con salmone":            17,
+    "🌯 • Burrito":                      20,
+    "🍗 • Ali di pollo fritte":          22,
+    "🍟 • Patatine fritte":               9,
+    "🧀 • Nachos con formaggio":         13,
+    "🍩 • Ciambella glassata":            8,
+    "🍪 • Biscotti":                     10,
+    "🍫 • Barretta di cioccolato":        6,
+    "🍿 • Popcorn":                       7,
+    "🍎 • Frutta fresca":                 8,
+    "🥫 • Cibo in scatola":               9,
 }
 
 DRINK_ITEMS = {
-    "🍺 • Birra":       1,
-    "🥃 • Whisky":      5,
-    "🍵 • Tè":          3,
-    "☕ • Caffè":       2,
-    "🥛 • Latte caldo": 4,
-    "🥃 • Rum":        12,
-    "🍶 • Gin":        10,
-    "🍹 • Brandy":     10,
-    "💧 • Acqua":      30,
+    "🥤 • Cola ghiacciata":       12,
+    "☕ • Caffè americano":        6,
+    "🧃 • Succo d'arancia":       10,
+    "🥛 • Frappè":                14,
+    "💧 • Acqua minerale":        32,
+    "🍺 • Birra":                  4,
+    "🥃 • Whisky":                 8,
+    "🍹 • Rum":                   10,
+    "🍸 • Vodka":                  9,
 }
 
 ALCOHOLIC = {
     "🍺 • Birra",
     "🥃 • Whisky",
-    "🥃 • Rum",
-    "🍶 • Gin",
-    "🍹 • Brandy",
+    "🍹 • Rum",
+    "🍸 • Vodka",
 }
 
 # ── Helper ────────────────────────────────────────────────────────────────────
@@ -95,7 +105,7 @@ def _bar(v: int) -> str:
 def _color(h: int, t: int) -> discord.Color:
     if h < 20 or t < 20: return discord.Color.red()
     if h < 50 or t < 50: return discord.Color.orange()
-    return discord.Color(0x8B4513)
+    return discord.Color(0x1E90FF)
 
 
 def _fuzzy(query: str, candidates: list) -> list:
@@ -109,13 +119,12 @@ def _fuzzy(query: str, candidates: list) -> list:
 def setup_rp_commands(bot):
 
     # ── /me ──────────────────────────────────────────────────────────────────
-    @bot.tree.command(name="me", description="Esegui un'azione roleplay nel Far West")
+    @bot.tree.command(name="me", description="Esegui un'azione roleplay a Los Santos")
     @app_commands.describe(azione="Descrivi cosa fa il tuo personaggio")
     async def me(interaction: discord.Interaction, azione: str):
         uid  = str(interaction.user.id)
         user = await database.get_user(uid)
 
-        # Blocco se fame E sete sono entrambe a 0
         if user["hunger"] <= 0 and user["thirst"] <= 0:
             await interaction.response.send_message(
                 "❌ Non puoi eseguire alcuna azione in quanto sei troppo disidratato e affamato.",
@@ -142,17 +151,19 @@ def setup_rp_commands(bot):
         if warns:
             embed.add_field(name="​", value="​", inline=False)
             embed.add_field(name="⚡ Avviso", value="\n".join(warns), inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Azione RP")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Azione RP")
         await interaction.response.send_message(embed=embed)
 
     # ── /mangia ──────────────────────────────────────────────────────────────
     async def _food_ac(interaction: discord.Interaction, current: str):
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, list(FOOD_ITEMS.keys()))[:25]]
 
-    @bot.tree.command(name="mangia", description="Mangia un cibo dalla bisaccia per ripristinare la fame")
+    @bot.tree.command(name="mangia", description="Mangia un cibo dallo zaino per ripristinare la fame")
     @app_commands.describe(cibo="Il cibo da mangiare")
     @app_commands.autocomplete(cibo=_food_ac)
     async def mangia(interaction: discord.Interaction, cibo: str):
+        if await _blocca_senza_zaino(interaction):
+            return
         if cibo not in FOOD_ITEMS:
             m = _fuzzy(cibo, list(FOOD_ITEMS.keys()))
             cibo = m[0] if m else cibo
@@ -160,7 +171,7 @@ def setup_rp_commands(bot):
             await interaction.response.send_message("❌ Cibo non riconosciuto.", ephemeral=True); return
         uid = str(interaction.user.id)
         if await database.get_item_quantity(uid, cibo) < 1:
-            await interaction.response.send_message(f"❌ Non hai **{cibo}** nella bisaccia!", ephemeral=True); return
+            await interaction.response.send_message(f"❌ Non hai **{cibo}** nello zaino!", ephemeral=True); return
         user  = await database.get_user(uid)
         rip   = FOOD_ITEMS[cibo]
         old_h = user["hunger"]
@@ -170,11 +181,11 @@ def setup_rp_commands(bot):
 
         # ── Animazione progressiva con più embed ─────────────────────────────
         FRASI_MANGIA = [
-            (0.10, "🍴 **{u}** dà il primo morso...",                  discord.Color(0xA0522D)),
-            (0.25, "😋 **{u}** mastica con soddisfazione.",            discord.Color(0xCD853F)),
-            (0.45, "🤤 **{u}** sente già le forze tornare...",         discord.Color(0xDAA520)),
-            (0.65, "💪 **{u}** si sente decisamente meglio!",          discord.Color(0xF4A460)),
-            (0.85, "✨ **{u}** ha quasi finito il pasto.",             discord.Color(0xFFD700)),
+            (0.10, "🍴 **{u}** dà il primo morso...",                  discord.Color(0x1E90FF)),
+            (0.25, "😋 **{u}** mastica con soddisfazione.",            discord.Color(0x4682B4)),
+            (0.45, "🤤 **{u}** sente già le forze tornare...",         discord.Color(0x5F9EA0)),
+            (0.65, "💪 **{u}** si sente decisamente meglio!",          discord.Color(0x00BFFF)),
+            (0.85, "✨ **{u}** ha quasi finito il pasto.",             discord.Color(0x87CEFA)),
             (1.00, "✅ **{u}** ha terminato il pasto con gusto!",     discord.Color(0x228B22)),
         ]
 
@@ -189,7 +200,6 @@ def setup_rp_commands(bot):
             progresso   = (idx + 1) / passi
             fame_attuale = min(100, old_h + round(step * (idx + 1)))
 
-            # Scegli frase in base al progresso
             frase_txt, colore = FRASI_MANGIA[0][1], FRASI_MANGIA[0][2]
             for soglia, testo, col in FRASI_MANGIA:
                 if progresso <= soglia:
@@ -205,7 +215,7 @@ def setup_rp_commands(bot):
             embed.add_field(name="🥘 Cibo",     value=cibo,                                        inline=True)
             embed.add_field(name="🍔 Fame",     value=f"{_bar(old_h)}  →  {_bar(fame_attuale)}",  inline=False)
             embed.add_field(name="➕ Recupero", value=f"+{round(step*(idx+1))}%",                  inline=True)
-            embed.set_footer(text=f"🤠 Red Dead Redemption II — Pasto in corso... ({idx+1}/{passi})")
+            embed.set_footer(text=f"🏙️ West Coast RP '93 — Pasto in corso... ({idx+1}/{passi})")
 
             if msg is None:
                 msg = await interaction.followup.send(embed=embed)
@@ -215,7 +225,6 @@ def setup_rp_commands(bot):
             if idx < passi - 1:
                 await asyncio.sleep(1.2)
 
-        # Embed finale definitivo
         embed_finale = discord.Embed(
             title="🍖 𝐏𝐚𝐬𝐭𝐨 𝐜𝐨𝐧𝐬𝐮𝐦𝐚𝐭𝐨",
             color=discord.Color(0x228B22),
@@ -225,17 +234,19 @@ def setup_rp_commands(bot):
         embed_finale.add_field(name="🥘 Cibo",     value=cibo,                               inline=False)
         embed_finale.add_field(name="🍔 Fame",     value=f"{_bar(old_h)}  →  {_bar(new_h)}", inline=False)
         embed_finale.add_field(name="➕ Recupero", value=f"+{rip}%",                          inline=False)
-        embed_finale.set_footer(text="🤠 Red Dead Redemption II — Bisaccia")
+        embed_finale.set_footer(text="🏙️ West Coast RP '93 — Zaino")
         await msg.edit(embed=embed_finale)
 
     # ── /bevi ────────────────────────────────────────────────────────────────
     async def _drink_ac(interaction: discord.Interaction, current: str):
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, list(DRINK_ITEMS.keys()))[:25]]
 
-    @bot.tree.command(name="bevi", description="Bevi qualcosa dalla bisaccia per ripristinare la sete")
+    @bot.tree.command(name="bevi", description="Bevi qualcosa dallo zaino per ripristinare la sete")
     @app_commands.describe(bevanda="La bevanda da bere")
     @app_commands.autocomplete(bevanda=_drink_ac)
     async def bevi(interaction: discord.Interaction, bevanda: str):
+        if await _blocca_senza_zaino(interaction):
+            return
         if bevanda not in DRINK_ITEMS:
             m = _fuzzy(bevanda, list(DRINK_ITEMS.keys()))
             bevanda = m[0] if m else bevanda
@@ -243,7 +254,7 @@ def setup_rp_commands(bot):
             await interaction.response.send_message("❌ Bevanda non riconosciuta.", ephemeral=True); return
         uid = str(interaction.user.id)
         if await database.get_item_quantity(uid, bevanda) < 1:
-            await interaction.response.send_message(f"❌ Non hai **{bevanda}** nella bisaccia!", ephemeral=True); return
+            await interaction.response.send_message(f"❌ Non hai **{bevanda}** nello zaino!", ephemeral=True); return
         user  = await database.get_user(uid)
         rip   = DRINK_ITEMS[bevanda]
         old_t = user["thirst"]
@@ -302,7 +313,7 @@ def setup_rp_commands(bot):
             embed.add_field(name="🥃 Bevanda", value=bevanda,                                                  inline=True)
             embed.add_field(name="💦 Sete",    value=f"{_bar(old_t)}  →  {_bar(sete_attuale)}" + nota_alc,   inline=False)
             embed.add_field(name="➕ Recupero",value=f"+{round(step*(idx+1))}%",                               inline=True)
-            embed.set_footer(text=f"🤠 Red Dead Redemption II — Bevanda in corso... ({idx+1}/{passi})")
+            embed.set_footer(text=f"🏙️ West Coast RP '93 — Bevanda in corso... ({idx+1}/{passi})")
 
             if msg is None:
                 msg = await interaction.followup.send(embed=embed)
@@ -322,44 +333,52 @@ def setup_rp_commands(bot):
         embed_finale.add_field(name="🥃 Bevanda", value=bevanda,                                         inline=False)
         embed_finale.add_field(name="💦 Sete",    value=f"{_bar(old_t)}  →  {_bar(new_t)}" + nota_finale, inline=False)
         embed_finale.add_field(name="➕ Recupero",value=f"+{rip}%",                                       inline=False)
-        embed_finale.set_footer(text="🤠 Red Dead Redemption II — Bisaccia")
+        embed_finale.set_footer(text="🏙️ West Coast RP '93 — Zaino")
         await msg.edit(embed=embed_finale)
 
-    # ── /bisaccia ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="bisaccia", description="Visualizza il contenuto della bisaccia")
+    # ── /zaino ───────────────────────────────────────────────────────────────
+    @bot.tree.command(name="zaino", description="Visualizza il contenuto del tuo zaino")
     @app_commands.describe(utente="Tag di un altro giocatore (opzionale)")
-    async def bisaccia(interaction: discord.Interaction, utente: discord.Member = None):
-        ALLOWED = [STAFF_ROLE_ID, 1404051860121456701, SCERIFFO_ROLE_ID, STATO_ROLE_ID]
+    async def zaino(interaction: discord.Interaction, utente: discord.Member = None):
+        ALLOWED = [STAFF_ROLE_ID, 1404051860121456701, FORZEDELLORDINE_ROLE_ID, STATO_ROLE_ID]
         target = utente or interaction.user
+
+        if not utente and not await _has_zaino(str(interaction.user.id)):
+            await interaction.response.send_message(
+                "❌ Non hai uno **zaino**! Comprane uno con `/compra-zaino` prima di usare questo comando.",
+                ephemeral=True
+            )
+            return
+
         if utente and utente.id != interaction.user.id:
             if not isinstance(interaction.user, discord.Member) or \
                not any(r.id in ALLOWED for r in interaction.user.roles):
                 await interaction.response.send_message(
-                    "❌ Solo Staff e Sceriffo possono vedere la bisaccia altrui.", ephemeral=True
+                    "❌ Solo Staff e FDO possono vedere lo zaino altrui.", ephemeral=True
                 )
                 return
 
         all_items = await database.get_inventory(str(target.id))
         user      = await database.get_user(str(target.id))
-        titolo    = f"🎒 Bisaccia di {target.mention}" if utente else "🎒 La tua Bisaccia"
+        titolo    = f"🎒 Zaino di {target.mention}" if utente else "🎒 Il tuo Zaino"
         B_PER_PAGE = 5
         tot = max(1, -(-len(all_items) // B_PER_PAGE))
 
-        def build_bisaccia_embed(p: int) -> discord.Embed:
-            embed = discord.Embed(title=titolo, color=discord.Color(0x8B4513), timestamp=discord.utils.utcnow())
+        def build_zaino_embed(p: int) -> discord.Embed:
+            embed = discord.Embed(title=titolo, color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
             embed.set_thumbnail(url=target.display_avatar.url)
             embed.add_field(name="🍔 Fame", value=_bar(user["hunger"]), inline=True)
             embed.add_field(name="💦 Sete", value=_bar(user["thirst"]), inline=True)
             page_items = all_items[p * B_PER_PAGE:(p + 1) * B_PER_PAGE]
             if not all_items:
-                embed.add_field(name="📦 Contenuto", value="*Bisaccia vuota.*", inline=False)
+                embed.add_field(name="📦 Contenuto", value="*Zaino vuoto.*", inline=False)
             else:
                 desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in page_items)
                 embed.add_field(name="📦 Contenuto", value=desc, inline=False)
-            embed.set_footer(text=f"🤠 Red Dead Redemption II — Bisaccia | Pagina {p+1}/{tot}")
+            embed.set_footer(text=f"🏙️ West Coast RP '93 — Zaino | Pagina {p+1}/{tot}")
             return embed
 
-        class BisacciaView(discord.ui.View):
+        class ZainoView(discord.ui.View):
             def __init__(self_v, p=0):
                 super().__init__(timeout=120)
                 self_v.p = p
@@ -373,41 +392,47 @@ def setup_rp_commands(bot):
             async def prev_btn(self_v, itr: discord.Interaction, btn):
                 self_v.p -= 1
                 self_v._aggiorna()
-                await itr.response.edit_message(embed=build_bisaccia_embed(self_v.p), view=self_v)
+                await itr.response.edit_message(embed=build_zaino_embed(self_v.p), view=self_v)
 
             @discord.ui.button(label="➡️ Pagina", style=discord.ButtonStyle.primary)
             async def next_btn(self_v, itr: discord.Interaction, btn):
                 self_v.p += 1
                 self_v._aggiorna()
-                await itr.response.edit_message(embed=build_bisaccia_embed(self_v.p), view=self_v)
+                await itr.response.edit_message(embed=build_zaino_embed(self_v.p), view=self_v)
 
         if tot > 1:
-            await interaction.response.send_message(embed=build_bisaccia_embed(0), view=BisacciaView(), ephemeral=True)
+            await interaction.response.send_message(embed=build_zaino_embed(0), view=ZainoView(), ephemeral=True)
         else:
-            await interaction.response.send_message(embed=build_bisaccia_embed(0), ephemeral=True)
+            await interaction.response.send_message(embed=build_zaino_embed(0), ephemeral=True)
 
         if utente and utente.id != interaction.user.id:
             try:
                 ch = bot.get_channel(LOG_CHANNEL_ID)
                 if ch:
-                    log = discord.Embed(title="👁️ 𝐋𝐎𝐆 — 𝐁𝐢𝐬𝐚𝐜𝐜𝐢𝐚 𝐂𝐨𝐧𝐭𝐫𝐨𝐥𝐥𝐚𝐭𝐚", color=discord.Color(0x8B4513))
+                    log = discord.Embed(title="👁️ 𝐋𝐎𝐆 — 𝐙𝐚𝐢𝐧𝐨 𝐂𝐨𝐧𝐭𝐫𝐨𝐥𝐥𝐚𝐭𝐨", color=discord.Color(0x1E90FF))
                     log.add_field(name="👮 Chi ha guardato", value=interaction.user.mention, inline=True)
-                    log.add_field(name="👤 Bisaccia di",     value=target.mention,           inline=True)
+                    log.add_field(name="👤 Zaino di",        value=target.mention,           inline=True)
                     await ch.send(embed=log)
             except Exception: pass
 
 
-    # ── /vendibisaccia ───────────────────────────────────────────────────────
-    @bot.tree.command(name="vendibisaccia", description="Vendi l'intera tua bisaccia a un altro giocatore")
+    # ── /vendi-zaino ─────────────────────────────────────────────────────────
+    @bot.tree.command(name="vendi-zaino", description="Vendi l'intero contenuto del tuo zaino a un altro giocatore")
     @app_commands.describe(acquirente="Il giocatore che compra", prezzo="Prezzo in $ concordato")
-    async def vendi_bisaccia(interaction: discord.Interaction, acquirente: discord.Member, prezzo: int):
+    async def vendi_zaino(interaction: discord.Interaction, acquirente: discord.Member, prezzo: int):
+        if await _blocca_senza_zaino(interaction):
+            return
         if acquirente.id == interaction.user.id:
-            await interaction.response.send_message("❌ Non puoi venderla a te stesso.", ephemeral=True); return
+            await interaction.response.send_message("❌ Non puoi venderlo a te stesso.", ephemeral=True); return
         if prezzo <= 0:
             await interaction.response.send_message("❌ Il prezzo deve essere positivo.", ephemeral=True); return
         items = await database.get_inventory(str(interaction.user.id))
         if not items:
-            await interaction.response.send_message("❌ La tua bisaccia è vuota!", ephemeral=True); return
+            await interaction.response.send_message("❌ Il tuo zaino è vuoto!", ephemeral=True); return
+        # Lo zaino in sé non si vende, solo il suo contenuto
+        items = [i for i in items if i["item_name"] != ZAINO_ITEM_NAME]
+        if not items:
+            await interaction.response.send_message("❌ Il tuo zaino è vuoto!", ephemeral=True); return
         buyer = await database.get_user(str(acquirente.id))
         if buyer["cash"] < prezzo:
             await interaction.response.send_message(f"❌ {acquirente.display_name} non ha abbastanza contanti.", ephemeral=True); return
@@ -416,16 +441,14 @@ def setup_rp_commands(bot):
         await database.update_balance(str(interaction.user.id), cash=seller["cash"] + prezzo)
         for it in items:
             await database.add_item(str(acquirente.id), it["item_name"], it["quantity"])
-        async with aiosqlite.connect(DATABASE_NAME) as db:
-            await db.execute("DELETE FROM inventory WHERE user_id=?", (str(interaction.user.id),))
-            await db.commit()
+            await database.remove_item(str(interaction.user.id), it["item_name"], it["quantity"])
         contenuto = "\n".join(f"• {i['item_name']} x{i['quantity']}" for i in items)
-        embed = discord.Embed(title="🤝 𝐁𝐢𝐬𝐚𝐜𝐜𝐢𝐚 𝐕𝐞𝐧𝐝𝐮𝐭𝐚", color=discord.Color(0x8B4513), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(title="🤝 𝐙𝐚𝐢𝐧𝐨 𝐕𝐞𝐧𝐝𝐮𝐭𝐨", color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
         embed.add_field(name="💰 Prezzo",    value=f"${prezzo:,}",           inline=True)
         embed.add_field(name="👤 Venditore", value=interaction.user.mention, inline=True)
         embed.add_field(name="🎯 Acquirente",value=acquirente.mention,        inline=True)
         embed.add_field(name="📦 Contenuto", value=contenuto or "—",         inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Scambio")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Scambio")
         await interaction.response.send_message(embed=embed)
 
     # ── /dai-item ────────────────────────────────────────────────────────────
@@ -435,10 +458,12 @@ def setup_rp_commands(bot):
         names = [i["item_name"] for i in items]
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, names)[:25]]
 
-    @bot.tree.command(name="dai-item", description="Dai un item dalla tua bisaccia a un altro giocatore")
+    @bot.tree.command(name="dai-item", description="Dai un item dal tuo zaino a un altro giocatore")
     @app_commands.describe(giocatore="Il giocatore", item="L'item da dare", quantita="Quantità")
     @app_commands.autocomplete(item=_dai_item_ac)
     async def dai_item(interaction: discord.Interaction, giocatore: discord.Member, item: str, quantita: int = 1):
+        if await _blocca_senza_zaino(interaction):
+            return
         if giocatore.id == interaction.user.id:
             await interaction.response.send_message("❌ Non puoi darti item da solo!", ephemeral=True); return
         if quantita < 1:
@@ -451,12 +476,12 @@ def setup_rp_commands(bot):
             await _cu.applica_calo_passaggio(bot, str(interaction.user.id), item)
         except Exception as e:
             print(f"[dai-item] usura skip: {e}", flush=True)
-        embed = discord.Embed(title="🤝 𝐈𝐭𝐞𝐦 𝐂𝐨𝐧𝐬𝐞𝐠𝐧𝐚𝐭𝐨", color=discord.Color(0x8B4513), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(title="🤝 𝐈𝐭𝐞𝐦 𝐂𝐨𝐧𝐬𝐞𝐠𝐧𝐚𝐭𝐨", color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
         embed.add_field(name="📦 Item",     value=item,                     inline=True)
         embed.add_field(name="🔢 Quantità", value=str(quantita),            inline=True)
         embed.add_field(name="👤 Da",       value=interaction.user.mention, inline=True)
         embed.add_field(name="🎯 A",        value=giocatore.mention,        inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Scambio")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Scambio")
         await interaction.response.send_message(embed=embed)
 
     # ── /utilizza-item ───────────────────────────────────────────────────────
@@ -466,18 +491,20 @@ def setup_rp_commands(bot):
         names = [i["item_name"] for i in items]
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, names)[:25]]
 
-    @bot.tree.command(name="utilizza-item", description="Utilizza un item dalla tua bisaccia")
+    @bot.tree.command(name="utilizza-item", description="Utilizza un item dal tuo zaino")
     @app_commands.describe(item="L'item da utilizzare")
     @app_commands.autocomplete(item=_utilizza_item_ac)
     async def utilizza_item(interaction: discord.Interaction, item: str):
+        if await _blocca_senza_zaino(interaction):
+            return
         if not await database.remove_item(str(interaction.user.id), item, 1):
-            await interaction.response.send_message(f"❌ Non hai **{item}** nella bisaccia.", ephemeral=True); return
+            await interaction.response.send_message(f"❌ Non hai **{item}** nello zaino.", ephemeral=True); return
         embed = discord.Embed(
             title="✅ 𝐈𝐭𝐞𝐦 𝐔𝐭𝐢𝐥𝐢𝐳𝐳𝐚𝐭𝐨",
             description=f"*{interaction.user.mention} utilizza **{item}**.*",
-            color=discord.Color(0x8B4513), timestamp=discord.utils.utcnow()
+            color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow()
         )
-        embed.set_footer(text="🤠 Red Dead Redemption II — Bisaccia")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
         await interaction.response.send_message(embed=embed)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -485,14 +512,13 @@ def setup_rp_commands(bot):
     # ══════════════════════════════════════════════════════════════════════════
     @bot.tree.command(name="inizio-turno", description="Inizia il tuo turno di lavoro")
     @app_commands.describe(
-        lavoro="Tag del ruolo lavorativo (@Sceriffo, @Dottore…)",
+        lavoro="Tag del ruolo lavorativo (@FDO, @Dottore…)",
         stipendio="Il tuo stipendio orario in $"
     )
     async def inizio_turno(interaction: discord.Interaction, lavoro: discord.Role, stipendio: int):
         await interaction.response.defer()
         uid = str(interaction.user.id)
 
-        # Blocco doppio turno — controlla nel DB
         turno_esistente = await database.get_turno(uid)
         if turno_esistente:
             from datetime import datetime as _dt
@@ -505,7 +531,6 @@ def setup_rp_commands(bot):
             )
             return
 
-        # Controllo: l'utente possiede il ruolo indicato
         if not isinstance(interaction.user, discord.Member) or \
            not any(r.id == lavoro.id for r in interaction.user.roles):
             await interaction.followup.send(
@@ -518,7 +543,7 @@ def setup_rp_commands(bot):
             await interaction.followup.send("❌ Lo stipendio orario deve essere positivo.", ephemeral=True); return
 
         now = datetime.now(timezone.utc)
-        _turni_cache[uid] = lavoro  # salva l'oggetto Role in cache
+        _turni_cache[uid] = lavoro
         await database.save_turno(uid, lavoro.id, lavoro.name, stipendio, now.timestamp())
 
         embed = discord.Embed(
@@ -527,14 +552,13 @@ def setup_rp_commands(bot):
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        embed.add_field(name="🤠 Dipendente",    value=interaction.user.mention, inline=False)
+        embed.add_field(name="🧑 Dipendente",    value=interaction.user.mention, inline=False)
         embed.add_field(name="💼 Lavoro",        value=lavoro.mention,           inline=False)
         embed.add_field(name="💵 Stipendio/ora", value=f"${stipendio:,}",        inline=False)
         embed.add_field(name="🕐 Inizio turno",  value=_ora_italia(now), inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Turno di Lavoro")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Turno di Lavoro")
         await interaction.followup.send(embed=embed, ephemeral=False)
 
-        
     # ══════════════════════════════════════════════════════════════════════════
     #  /fine-turno
     # ══════════════════════════════════════════════════════════════════════════
@@ -563,7 +587,6 @@ def setup_rp_commands(bot):
         inizio       = _dt.fromtimestamp(turno_db["inizio_ts"], tz=timezone.utc)
         durata_s     = (now - inizio).total_seconds()
         ore_esatte    = durata_s / 3600
-        # Arrotonda alla mezz'ora più vicina (minimo 30 min = 0.5h)
         ore_fatturate = max(0.5, math.floor(ore_esatte * 2 + 0.5) / 2)
 
         stipendio_totale = round(turno_db["stipendio"] * ore_fatturate)
@@ -575,14 +598,13 @@ def setup_rp_commands(bot):
         await database.delete_turno(uid)
         _turni_cache.pop(uid, None)
 
-        # ── Embed fine turno (nel canale corrente) ───────────────────────────
         embed_fine = discord.Embed(
             title="<a:offline:1459628872197738641> 𝐓𝐔𝐑𝐍𝐎 𝐓𝐄𝐑𝐌𝐈𝐍𝐀𝐓𝐎 <a:offline:1459628872197738641>",
             color=discord.Color.red(),
             timestamp=discord.utils.utcnow()
         )
         embed_fine.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        embed_fine.add_field(name="🤠 Dipendente",       value=interaction.user.mention,               inline=False)
+        embed_fine.add_field(name="🧑 Dipendente",       value=interaction.user.mention,               inline=False)
         embed_fine.add_field(name="​", value="​", inline=False)
         embed_fine.add_field(name="💼 Lavoro",           value=lavoro.mention,                         inline=False)
         embed_fine.add_field(name="​", value="​", inline=False)
@@ -594,20 +616,17 @@ def setup_rp_commands(bot):
         embed_fine.add_field(name="​", value="​", inline=False)
         embed_fine.add_field(name="💵 Stipendio/ora",    value=f"${turno_db['stipendio']:,}",          inline=True)
         embed_fine.add_field(name="💰 Totale da pagare", value=f"**${stipendio_totale:,}**",           inline=True)
-        embed_fine.set_footer(text="🤠 Red Dead Redemption II — Turno di Lavoro")
+        embed_fine.set_footer(text="🏙️ West Coast RP '93 — Turno di Lavoro")
 
         await interaction.followup.send(embed=embed_fine)
 
-        
-
-        # ── Embed notifica staff (canale stipendi) ───────────────────────────
         embed_staff = discord.Embed(
             title="💼 𝐑𝐈𝐂𝐇𝐈𝐄𝐒𝐓𝐀 𝐏𝐀𝐆𝐀𝐌𝐄𝐍𝐓𝐎 𝐒𝐓𝐈𝐏𝐄𝐍𝐃𝐈𝐎",
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed_staff.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        embed_staff.add_field(name="🤠 Dipendente",       value=interaction.user.mention,               inline=False)
+        embed_staff.add_field(name="🧑 Dipendente",       value=interaction.user.mention,               inline=False)
         embed_staff.add_field(name="​", value="​", inline=False)
         embed_staff.add_field(name="💼 Ruolo",            value=lavoro.mention,                         inline=False)
         embed_staff.add_field(name="​", value="​", inline=False)
@@ -619,7 +638,7 @@ def setup_rp_commands(bot):
         embed_staff.add_field(name="​", value="​", inline=False)
         embed_staff.add_field(name="💵 Stipendio/ora",    value=f"${turno_db['stipendio']:,}",          inline=True)
         embed_staff.add_field(name="💰 Da pagare",        value=f"**${stipendio_totale:,}**",           inline=True)
-        embed_staff.set_footer(text="🤠 Red Dead Redemption II — Usa /paga-stipendio per pagare")
+        embed_staff.set_footer(text="🏙️ West Coast RP '93 — Usa /paga-stipendio per pagare")
 
         try:
             stipendio_ch = bot.get_channel(STIPENDIO_CHANNEL_ID)
@@ -630,29 +649,26 @@ def setup_rp_commands(bot):
                 )
         except Exception: pass
 
-    # ── /campeggio ───────────────────────────────────────────────────────────
-    @bot.tree.command(name="campeggio", description="Monta o smonta il tuo accampamento")
-    @app_commands.describe(azione="Monta o smonta", luogo="Dove (opzionale)", foto="Foto dell'accampamento (opzionale)")
+    # ── /rifugio ─────────────────────────────────────────────────────────────
+    @bot.tree.command(name="rifugio", description="Monta o smonta il tuo rifugio di fortuna")
+    @app_commands.describe(azione="Monta o smonta", luogo="Dove (opzionale)", foto="Foto del rifugio (opzionale)")
     @app_commands.choices(azione=[
-        app_commands.Choice(name="⛺ Monta accampamento",  value="monta"),
-        app_commands.Choice(name="🏕️ Smonta accampamento", value="smonta"),
+        app_commands.Choice(name="🏚️ Monta rifugio",  value="monta"),
+        app_commands.Choice(name="📦 Smonta rifugio",  value="smonta"),
     ])
-    async def campeggio(interaction: discord.Interaction, azione: str, luogo: str = "", foto: discord.Attachment = None):
+    async def rifugio(interaction: discord.Interaction, azione: str, luogo: str = "", foto: discord.Attachment = None):
         if azione == "monta":
-            title = "⛺ 𝐀𝐜𝐜𝐚𝐦𝐩𝐚𝐦𝐞𝐧𝐭𝐨 𝐌𝐨𝐧𝐭𝐚𝐭𝐨"
-            desc  = f"*{interaction.user.mention} monta il proprio accampamento" + (f" a **{luogo}**.*" if luogo else ".*")
+            title = "🏚️ 𝐑𝐢𝐟𝐮𝐠𝐢𝐨 𝐌𝐨𝐧𝐭𝐚𝐭𝐨"
+            desc  = f"*{interaction.user.mention} monta il proprio rifugio di fortuna" + (f" a **{luogo}**.*" if luogo else ".*")
         else:
-            title = "🏕️ 𝐀𝐜𝐜𝐚𝐦𝐩𝐚𝐦𝐞𝐧𝐭𝐨 𝐒𝐦𝐨𝐧𝐭𝐚𝐭𝐨"
-            desc  = f"*{interaction.user.mention} smonta il proprio accampamento" + (f" da **{luogo}**.*" if luogo else ".*")
-        embed = discord.Embed(title=title, description=desc, color=discord.Color(0x556B2F), timestamp=discord.utils.utcnow())
+            title = "📦 𝐑𝐢𝐟𝐮𝐠𝐢𝐨 𝐒𝐦𝐨𝐧𝐭𝐚𝐭𝐨"
+            desc  = f"*{interaction.user.mention} smonta il proprio rifugio di fortuna" + (f" da **{luogo}**.*" if luogo else ".*")
+        embed = discord.Embed(title=title, description=desc, color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         if foto and foto.content_type and foto.content_type.startswith("image/"):
             embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Accampamento")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Rifugio")
         await interaction.response.send_message(embed=embed)
-
-    # ── /caccia ──────────────────────────────────────────────────────────────
-  
 
     # ── /anonimo ─────────────────────────────────────────────────────────────
     @bot.tree.command(name="anonimo", description="Invia un messaggio anonimo nel canale")
@@ -660,11 +676,9 @@ def setup_rp_commands(bot):
     async def anonimo(interaction: discord.Interaction, messaggio: str):
         import re as _re
 
-        # Rileva menzioni ruoli (<@&ID>) e utenti (<@ID> o <@!ID>)
         role_ids  = _re.findall(r'<@&(\d+)>',  messaggio)
         user_ids  = _re.findall(r'<@!?(\d+)>', messaggio)
 
-        # Costruisce le mention string per il contenuto sopra l'embed
         guild = interaction.guild
         role_mentions  = []
         member_mentions = []
@@ -679,7 +693,6 @@ def setup_rp_commands(bot):
                 if member:
                     member_mentions.append(member.mention)
 
-        # Testo di avviso sopra l'embed
         avviso = ""
         if role_mentions and member_mentions:
             avviso = f"📝 In questo messaggio sono stati menzionati i ruoli e i membri: {' '.join(role_mentions)} {' '.join(member_mentions)}"
@@ -690,14 +703,13 @@ def setup_rp_commands(bot):
 
         embed = discord.Embed(description=f"*\"{messaggio}\"*", color=discord.Color(0x2C2C2C), timestamp=discord.utils.utcnow())
         embed.set_author(name="🎭 𝐌𝐞𝐬𝐬𝐚𝐠𝐠𝐢𝐨 𝐀𝐧𝐨𝐧𝐢𝐦𝐨")
-        embed.set_footer(text="🤠 Red Dead Redemption II — Anonimo")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Anonimo")
         await interaction.response.send_message("✅ Messaggio inviato anonimamente.", ephemeral=True)
         if avviso:
             await interaction.channel.send(content=avviso, embed=embed)
         else:
             await interaction.channel.send(embed=embed)
 
-        # Log — mostra chi ha usato il comando e in che canale
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
@@ -720,9 +732,9 @@ def setup_rp_commands(bot):
         names = [i["item_name"] for i in items]
         return [app_commands.Choice(name=m, value=m) for m in _fuzzy(current, names)[:25]]
 
-    @bot.tree.command(name="nascondo", description="Nascondi un oggetto dalla tua bisaccia in un luogo segreto")
+    @bot.tree.command(name="nascondo", description="Nascondi un oggetto dal tuo zaino in un luogo segreto")
     @app_commands.describe(
-        oggetto="L'oggetto da nascondere (dalla tua bisaccia)",
+        oggetto="L'oggetto da nascondere (dal tuo zaino)",
         luogo="Il luogo segreto",
         quantita="Quantità da nascondere (default 1)",
         foto="Foto del luogo (opzionale)"
@@ -730,28 +742,28 @@ def setup_rp_commands(bot):
     @app_commands.autocomplete(oggetto=_nascondo_ac)
     async def nascondo(interaction: discord.Interaction, oggetto: str, luogo: str,
                        quantita: int = 1, foto: discord.Attachment = None):
+        if await _blocca_senza_zaino(interaction):
+            return
         uid = str(interaction.user.id)
 
         if quantita < 1:
             await interaction.response.send_message("❌ Quantità minima: 1.", ephemeral=True)
             return
 
-        # Verifica che l'utente abbia abbastanza item
-        qty_in_bisaccia = await database.get_item_quantity(uid, oggetto)
-        if qty_in_bisaccia < quantita:
+        qty_in_inventario = await database.get_item_quantity(uid, oggetto)
+        if qty_in_inventario < quantita:
             await interaction.response.send_message(
-                f"❌ Non hai abbastanza **{oggetto}** nella bisaccia. (Hai: {qty_in_bisaccia})",
+                f"❌ Non hai abbastanza **{oggetto}** nello zaino. (Hai: {qty_in_inventario})",
                 ephemeral=True
             )
             return
 
-        # Rimuove dalla bisaccia e mette in hidden_items
         await database.remove_item(uid, oggetto, quantita)
         hide_id = await database.hide_item(uid, oggetto, quantita, luogo)
 
         embed = discord.Embed(
             title="🙈 𝐎𝐠𝐠𝐞𝐭𝐭𝐨 𝐍𝐚𝐬𝐜𝐨𝐬𝐭𝐨",
-            color=discord.Color(0x556B2F),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
@@ -760,14 +772,13 @@ def setup_rp_commands(bot):
         embed.add_field(name="📍 Luogo",    value=luogo,                    inline=False)
         if foto and foto.content_type and foto.content_type.startswith("image/"):
             embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Usa /recupera-oggetto per riprendere l'oggetto")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Usa /recupera-oggetto per riprendere l'oggetto")
         await interaction.response.send_message(embed=embed)
 
-        # Log
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
-                log = discord.Embed(title="🙈 LOG — Oggetto Nascosto", color=discord.Color(0x556B2F), timestamp=discord.utils.utcnow())
+                log = discord.Embed(title="🙈 LOG — Oggetto Nascosto", color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
                 log.add_field(name="👤 Utente",   value=interaction.user.mention,    inline=True)
                 log.add_field(name="📦 Oggetto",  value=f"{oggetto} x{quantita}",    inline=True)
                 log.add_field(name="📍 Luogo",    value=luogo,                       inline=True)
@@ -792,16 +803,16 @@ def setup_rp_commands(bot):
     @app_commands.describe(oggetto="L'oggetto nascosto da recuperare")
     @app_commands.autocomplete(oggetto=_recupera_ac)
     async def recupera_oggetto(interaction: discord.Interaction, oggetto: str):
+        if await _blocca_senza_zaino(interaction):
+            return
         uid = str(interaction.user.id)
 
-        # oggetto è l'ID del nascondiglio (stringa numerica dall'autocomplete)
         try:
             hide_id = int(oggetto)
         except ValueError:
             await interaction.response.send_message("❌ Seleziona un oggetto dalla lista.", ephemeral=True)
             return
 
-        # Verifica che esista e appartenga all'utente
         hidden_items = await database.get_hidden_items(uid)
         item = next((i for i in hidden_items if i["id"] == hide_id), None)
 
@@ -811,7 +822,6 @@ def setup_rp_commands(bot):
             )
             return
 
-        # Recupera: rimuove da hidden_items e rimette in bisaccia
         await database.recover_hidden_item(hide_id)
         await database.add_item(uid, item["item_name"], item["quantity"])
 
@@ -823,10 +833,9 @@ def setup_rp_commands(bot):
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="📦 Oggetto",  value=f"{item['item_name']} x{item['quantity']}", inline=True)
         embed.add_field(name="📍 Era in",   value=item["luogo"],                               inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Bisaccia")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
         await interaction.response.send_message(embed=embed)
 
-        # Log
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
@@ -837,9 +846,6 @@ def setup_rp_commands(bot):
                 await ch.send(embed=log)
         except Exception:
             pass
-
-    # ── /sondaggiorp ─────────────────────────────────────────────────────────
-
 
     # ── /lettera ─────────────────────────────────────────────────────────────
     @bot.tree.command(name="lettera", description="Invia una lettera privata a un altro giocatore")
@@ -863,7 +869,7 @@ def setup_rp_commands(bot):
             mittente = discord.ui.TextInput(
                 label="Mittente",
                 style=discord.TextStyle.short,
-                placeholder="Es: Arthur Morgan",
+                placeholder="Es: Carl Johnson",
                 required=True,
                 max_length=100
             )
@@ -880,7 +886,7 @@ def setup_rp_commands(bot):
                 embed_dm.add_field(name="📬 Destinatario",      value=destinatario.mention,      inline=False)
                 embed_dm.add_field(name="📜 Contenuto lettera", value=self.contenuto.value,      inline=False)
                 embed_dm.add_field(name="🖊️ Firma",            value=f"__{self.mittente.value}__", inline=False)
-                embed_dm.set_footer(text="🤠 Red Dead Redemption II — Posta del Far West")
+                embed_dm.set_footer(text="🏙️ West Coast RP '93 — Posta di Los Santos")
 
                 inviata = False
                 try:
@@ -899,7 +905,6 @@ def setup_rp_commands(bot):
                         ephemeral=True
                     )
 
-                # Log
                 try:
                     ch = bot.get_channel(LOG_CHANNEL_ID)
                     if ch:
