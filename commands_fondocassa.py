@@ -10,13 +10,16 @@ COMPANY_EMOJI = {
     "Dottore":           "🏥",
     "Armeria":           "🔫",
     "Concessionario":    "🚗",
-    "Bar":               "🍺",
-    "Market":            "🏪",
+    "Bar":               "🍻",
+    "Market":            "🛒",
     "Contrabbando":      "🚫",
     "Meccanico":         "🔧",
     "Pegasus":           "✈️",
     "Agenzia Imm.":      "🏠",
     "Banca":             "🏦",
+    "Notariato":         "📝",
+    "County Donuts":     "🍩",
+    "County Impound":    "🚛",
 }
 
 _CHOICES = [
@@ -26,13 +29,16 @@ _CHOICES = [
     app_commands.Choice(name="🏥 Dottore",            value="Dottore"),
     app_commands.Choice(name="🔫 Armeria",            value="Armeria"),
     app_commands.Choice(name="🚗 Concessionario",     value="Concessionario"),
-    app_commands.Choice(name="🍺 Bar",                value="Bar"),
-    app_commands.Choice(name="🏪 Market",             value="Market"),
+    app_commands.Choice(name="🍻 Bar",                value="Bar"),
+    app_commands.Choice(name="🛒 Market",             value="Market"),
     app_commands.Choice(name="🚫 Contrabbando",       value="Contrabbando"),
     app_commands.Choice(name="🔧 Meccanico",          value="Meccanico"),
     app_commands.Choice(name="✈️ Pegasus",            value="Pegasus"),
     app_commands.Choice(name="🏠 Agenzia Imm.",       value="Agenzia Imm."),
     app_commands.Choice(name="🏦 Banca",              value="Banca"),
+    app_commands.Choice(name="📝 Notariato",          value="Notariato"),
+    app_commands.Choice(name="🍩 County Donuts",      value="County Donuts"),
+    app_commands.Choice(name="🚛 County Impound",     value="County Impound"),
 ]
 
 
