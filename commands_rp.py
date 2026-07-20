@@ -41,7 +41,7 @@ from constants import (
 )
 
 # Canale dove va la notifica stipendio per lo staff
-STIPENDIO_CHANNEL_ID = 1422986030650228766
+STIPENDIO_CHANNEL_ID = 1452975451587870793
 
 # Turni attivi: ora persistenti nel DB (tabella turni_attivi)
 # Il dizionario in memoria serve solo come cache per i role object Discord
