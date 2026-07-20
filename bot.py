@@ -50,6 +50,7 @@ _modules = [
     ("commands_wipepg",          "setup_wipepg_commands"),
     ("commands_deposits",        "setup_deposits_commands"),
     ("commands_gazzetta",        "setup_gazzetta_commands"),
+    ("commands_marijuana",       "setup_marijuana_commands")
 ]
 
 _loaded = {}
