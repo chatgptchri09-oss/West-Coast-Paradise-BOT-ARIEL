@@ -10,16 +10,15 @@ def _criminali_attivi() -> bool:
         return True
 
 # Ruoli da menzionare sopra l'embed
-FORZEDELLORDINE_PING  = 1524525114526269470
-CRIMINALI_PING = 1525774939796406292
+FDO_PING       = 1404051916140449885
+CRIMINALI_PING = 1420468587998478376
 
-# Dati rapine dalla tabella ufficiale
+# Dati rapine — West Coast RP '93 (tabella ufficiale)
 RAPINE = {
     "Persona": {
-        "emoji": "🤠",
-        "immagine": "https://i.postimg.cc/BZT2mN2W/IMG-7555.webp",
-        "criminali": "1",
-        "fdo": "Da 1 a 2",
+        "emoji": "🧍",
+        "criminali": "Da 1 a 6",
+        "fdo": "Da 2 a 7",
         "bottino": "Variabile",
         "armi": "Bianche e Pistole",
         "ostaggi": "1",
@@ -27,37 +26,34 @@ RAPINE = {
         "tetti": "NO",
         "fdo_speciali": "NO",
     },
-    "Stalla": {
-        "emoji": "🐴",
-        "immagine": "https://i.postimg.cc/tgd9K1kY/IMG-7556.jpg",
-        "criminali": "Da 1 a 2",
-        "fdo": "Da 2 a 3",
-        "bottino": "100$ + 1 Cavallo + Capitali",
+    "Negozio Di Tatuaggi": {
+        "emoji": "💉",
+        "criminali": "Da 1 a 6",
+        "fdo": "Da 2 a 7",
+        "bottino": "1'000$",
         "armi": "Pistole",
-        "ostaggi": "1",
-        "scassinamento": "3 Minuti",
-        "tetti": "NO",
-        "fdo_speciali": "NO",
-    },
-    "Emporio": {
-        "emoji": "🏪",
-        "immagine": "https://i.postimg.cc/7LPxyHWf/IMG-7557.jpg",
-        "criminali": "Da 1 a 3",
-        "fdo": "Da 2 a 4",
-        "bottino": "150$ + 2 Capitali + Binocolo",
-        "armi": "Pistole e Fucili",
-        "ostaggi": "1",
+        "ostaggi": "Da 1 a 2",
         "scassinamento": "5 Minuti",
         "tetti": "NO",
         "fdo_speciali": "NO",
     },
-    "Saloon": {
-        "emoji": "🍺",
-        "immagine": "https://i.postimg.cc/ydSy6HJs/IMG-7554.webp",
-        "criminali": "Da 1 a 4",
-        "fdo": "Da 2 a 5",
-        "bottino": "220$ + 3 Capitali",
-        "armi": "Pistole e Fucili",
+    "Negozio Di Vestiti": {
+        "emoji": "👕",
+        "criminali": "Da 1 a 6",
+        "fdo": "Da 2 a 7",
+        "bottino": "1'500$",
+        "armi": "Pistole",
+        "ostaggi": "Da 1 a 2",
+        "scassinamento": "5 Minuti",
+        "tetti": "NO",
+        "fdo_speciali": "NO",
+    },
+    "Mini-Market": {
+        "emoji": "🏪",
+        "criminali": "Da 1 a 6",
+        "fdo": "Da 2 a 7",
+        "bottino": "3'000$",
+        "armi": "Pistole",
         "ostaggi": "Da 1 a 2",
         "scassinamento": "7 Minuti",
         "tetti": "NO",
@@ -65,37 +61,45 @@ RAPINE = {
     },
     "Armeria": {
         "emoji": "🔫",
-        "immagine": "https://i.postimg.cc/15pPnVxw/IMG-7558.jpg",
-        "criminali": "Da 2 a 4",
-        "fdo": "Da 3 a 5",
-        "bottino": "300$ + 5 Capitali + 2 Revolver + 1 Fucile",
+        "criminali": "Da 1 a 6",
+        "fdo": "Da 2 a 7",
+        "bottino": "8'000$ + 2 Pistole",
         "armi": "Tutte",
-        "ostaggi": "Da 1 a 2",
+        "ostaggi": "Da 1 a 3",
         "scassinamento": "10 Minuti",
         "tetti": "SÌ",
         "fdo_speciali": "SÌ",
     },
-    "Diligenza": {
-        "emoji": "🚂",
-        "immagine": "https://i.postimg.cc/sfWCqG2y/IMG-7559.jpg",
-        "criminali": "Da 1 a 6",
-        "fdo": "Da 2 a 7",
-        "bottino": "Variabile + 5 Capitali",
+    "Banca Fleeca": {
+        "emoji": "🏦",
+        "criminali": "Da 1 a 8",
+        "fdo": "Da 2 a 9",
+        "bottino": "30'000$",
         "armi": "Tutte",
-        "ostaggi": "Da 1 a 10",
-        "scassinamento": "0 Minuti",
+        "ostaggi": "Da 1 a 4",
+        "scassinamento": "15 Minuti",
+        "tetti": "SÌ",
+        "fdo_speciali": "SÌ",
+    },
+    "Portavalori": {
+        "emoji": "🚚",
+        "criminali": "Da 1 a 8",
+        "fdo": "Da 2 a 9",
+        "bottino": "Variabile",
+        "armi": "Tutte",
+        "ostaggi": "Da 1 a 4",
+        "scassinamento": "10 Minuti",
         "tetti": "NO",
         "fdo_speciali": "SÌ",
     },
-    "Treno": {
-        "emoji": "🚃",
-        "immagine": "https://i.postimg.cc/Pq70Fdst/IMG-7560.webp",
-        "criminali": "Da 4 a 7",
-        "fdo": "Da 5 a 8",
-        "bottino": "800$ + 10 Capitali + Merce",
+    "Banca Paleto Bay": {
+        "emoji": "🏛️",
+        "criminali": "Da 1 a 8",
+        "fdo": "Da 2 a 9",
+        "bottino": "100'000$",
         "armi": "Tutte",
-        "ostaggi": "Da 1 a 12",
-        "scassinamento": "12 Minuti",
+        "ostaggi": "Da 1 a 5",
+        "scassinamento": "20 Minuti",
         "tetti": "SÌ",
         "fdo_speciali": "SÌ",
     },
@@ -104,16 +108,17 @@ RAPINE = {
 
 def setup_robbery_commands(bot):
 
-    @bot.tree.command(name="rapina", description="Avvia una rapina nel Far West (azione illegale)")
+    @bot.tree.command(name="rapina", description="Avvia una rapina a Los Santos (azione illegale)")
     @app_commands.describe(bersaglio="Scegli il tipo di rapina")
     @app_commands.choices(bersaglio=[
-        app_commands.Choice(name="🤠 Persona",   value="Persona"),
-        app_commands.Choice(name="🐴 Stalla",    value="Stalla"),
-        app_commands.Choice(name="🏪 Emporio",   value="Emporio"),
-        app_commands.Choice(name="🍺 Saloon",    value="Saloon"),
-        app_commands.Choice(name="🔫 Armeria",   value="Armeria"),
-        app_commands.Choice(name="🚂 Diligenza", value="Diligenza"),
-        app_commands.Choice(name="🚃 Treno",     value="Treno"),
+        app_commands.Choice(name="🧍 Persona",              value="Persona"),
+        app_commands.Choice(name="💉 Negozio Di Tatuaggi",  value="Negozio Di Tatuaggi"),
+        app_commands.Choice(name="👕 Negozio Di Vestiti",   value="Negozio Di Vestiti"),
+        app_commands.Choice(name="🏪 Mini-Market",          value="Mini-Market"),
+        app_commands.Choice(name="🔫 Armeria",              value="Armeria"),
+        app_commands.Choice(name="🏦 Banca Fleeca",         value="Banca Fleeca"),
+        app_commands.Choice(name="🚚 Portavalori",          value="Portavalori"),
+        app_commands.Choice(name="🏛️ Banca Paleto Bay",     value="Banca Paleto Bay"),
     ])
     async def rapina(interaction: discord.Interaction, bersaglio: str):
         if not _criminali_attivi():
@@ -128,7 +133,6 @@ def setup_robbery_commands(bot):
             color=discord.Color(0x8B0000),
             timestamp=discord.utils.utcnow()
         )
-        embed.set_image(url=r["immagine"])
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="👥 Criminali richiesti", value=r["criminali"],     inline=True)
         embed.add_field(name="🚔 FDO richieste",       value=r["fdo"],           inline=True)
@@ -138,9 +142,9 @@ def setup_robbery_commands(bot):
         embed.add_field(name="⏱️ Tempo scassinamento", value=r["scassinamento"], inline=True)
         embed.add_field(name="🏠 Accesso tetti",       value=r["tetti"],         inline=True)
         embed.add_field(name="⭐ FDO speciali",        value=r["fdo_speciali"],  inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Rapina")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Rapina")
 
-        ping_content = f"<@&{SCERIFFO_PING}> <@&{CRIMINALI_PING}>"
+        ping_content = f"<@&{FDO_PING}> <@&{CRIMINALI_PING}>"
         await interaction.response.send_message(content=ping_content, embed=embed)
 
         try:
