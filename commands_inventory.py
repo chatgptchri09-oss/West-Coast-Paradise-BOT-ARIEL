@@ -20,6 +20,10 @@ def _fuzzy(query: str, candidates: list) -> list:
 # ── Costanti paginazione ──────────────────────────────────────────────────────
 ITEMS_PER_PAGE = 5
 
+# ── Zaino ──────────────────────────────────────────────────────────────────────
+ZAINO_ITEM_NAME = "🎒 | Zaino"
+ZAINO_PREZZO     = 50
+
 
 # ── Helper embed emporio ──────────────────────────────────────────────────────
 def _build_shop_embed(page_items: list, page: int, tot: int) -> discord.Embed:
@@ -73,7 +77,7 @@ class ShopView(discord.ui.View):
 
 
 # ── View paginazione inventario (a livello modulo per persistenza callback) ────
-class InventarioPageView(discord.ui.View):
+class ZainoPageView(discord.ui.View):
     def __init__(self, all_items: list, titolo: str, hunger: int, thirst: int,
                  avatar_url: str, page: int = 0):
         super().__init__(timeout=120)
@@ -101,11 +105,11 @@ class InventarioPageView(discord.ui.View):
         embed.add_field(name="💦 Sete", value=self._bar(self._thirst), inline=True)
         page_items = self._get_page(p)
         if not self._all:
-            embed.add_field(name="📦 Contenuto", value="*Inventario vuoto.*", inline=False)
+            embed.add_field(name="📦 Contenuto", value="*Zaino vuoto.*", inline=False)
         else:
             desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in page_items)
             embed.add_field(name="📦 Contenuto", value=desc, inline=False)
-        embed.set_footer(text=f"🏙️ West Coast RP '93 — Inventario | Pagina {p+1}/{self._tot}")
+        embed.set_footer(text=f"🏙️ West Coast RP '93 — Zaino | Pagina {p+1}/{self._tot}")
         return embed
 
     def _update_buttons(self):
@@ -134,6 +138,37 @@ def setup_inventory_commands(bot):
         matches = _fuzzy(current, names)
         return [app_commands.Choice(name=m, value=m) for m in matches[:25]]
 
+    # ── /compra-zaino ─────────────────────────────────────────────────────────
+    @bot.tree.command(name="compra-zaino", description=f"Compra uno zaino per ${ZAINO_PREZZO} — necessario per usare gli oggetti")
+    async def compra_zaino(interaction: discord.Interaction):
+        uid = str(interaction.user.id)
+
+        if await database.get_item_quantity(uid, ZAINO_ITEM_NAME) >= 1:
+            await interaction.response.send_message("❌ Hai già uno zaino!", ephemeral=True)
+            return
+
+        user_data = await database.get_user(uid)
+        if user_data["cash"] < ZAINO_PREZZO:
+            await interaction.response.send_message(
+                f"❌ Contanti insufficienti! Hai **${user_data['cash']:,}** ma servono **${ZAINO_PREZZO:,}**.",
+                ephemeral=True
+            )
+            return
+
+        await database.update_balance(uid, cash=user_data["cash"] - ZAINO_PREZZO)
+        await database.add_item(uid, ZAINO_ITEM_NAME, 1)
+
+        embed = discord.Embed(
+            title="🎒 𝐙𝐚𝐢𝐧𝐨 𝐀𝐜𝐪𝐮𝐢𝐬𝐭𝐚𝐭𝐨",
+            description="Ora puoi usare `/zaino`, `/mangia`, `/bevi` e tutti gli altri comandi legati agli oggetti.",
+            color=discord.Color(0x1E90FF),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="💵 Pagato",  value=f"${ZAINO_PREZZO:,}",                   inline=True)
+        embed.add_field(name="💰 Rimasto", value=f"${user_data['cash']-ZAINO_PREZZO:,}", inline=True)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     # ── /negozio ──────────────────────────────────────────────────────────────
     @bot.tree.command(name="negozio", description="Visualizza il negozio degli item disponibili")
     async def itemshop(interaction: discord.Interaction):
@@ -152,6 +187,13 @@ def setup_inventory_commands(bot):
     async def item_sell(interaction: discord.Interaction, item: str, quantita: int = 1):
         print(f"[item-sell] START uid={interaction.user.id} item={item!r} q={quantita}", flush=True)
         uid = str(interaction.user.id)
+
+        if await database.get_item_quantity(uid, ZAINO_ITEM_NAME) < 1:
+            await interaction.response.send_message(
+                "❌ Non hai uno **zaino**! Comprane uno con `/compra-zaino` prima di acquistare oggetti.",
+                ephemeral=True
+            )
+            return
 
         if quantita < 1:
             await interaction.response.send_message("❌ La quantità deve essere almeno 1.", ephemeral=True)
@@ -338,7 +380,7 @@ def setup_inventory_commands(bot):
         await interaction.response.send_message(embed=embed)
 
     # ── /take-item ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="take-item", description="[Staff] Rimuovi un item dall'inventario di un giocatore")
+    @bot.tree.command(name="take-item", description="[Staff] Rimuovi un item dallo zaino di un giocatore")
     @app_commands.describe(giocatore="Il giocatore", item="Nome item (fuzzy search nell'inventario)", quantita="Quantità")
     @app_commands.autocomplete(item=_inventario_autocomplete)
     async def take_item(interaction: discord.Interaction, giocatore: discord.Member, item: str, quantita: int = 1):
@@ -413,16 +455,16 @@ def setup_inventory_commands(bot):
         await interaction.response.send_message(embed=embed)
 
     # ── /rimuoviinventario ────────────────────────────────────────────────────
-    @bot.tree.command(name="rimuoviinventario", description="[Staff] Rimuovi l'inventario di un giocatore")
+    @bot.tree.command(name="rimuovi-zaino", description="[Staff] Rimuovi lo zaino di un giocatore")
     @app_commands.describe(giocatore="Il giocatore")
-    async def rimuovi_inventario(interaction: discord.Interaction, giocatore: discord.Member):
+    async def rimuovi_zaino(interaction: discord.Interaction, giocatore: discord.Member):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi necessari.", ephemeral=True)
             return
         async with aiosqlite.connect(DATABASE_NAME) as db:
             await db.execute("DELETE FROM inventory WHERE user_id=?", (str(giocatore.id),))
             await db.commit()
-        embed = discord.Embed(title="🗑️ 𝐈𝐧𝐯𝐞𝐧𝐭𝐚𝐫𝐢𝐨 𝐑𝐢𝐦𝐨𝐬𝐬𝐨", color=discord.Color.red(),
+        embed = discord.Embed(title="🗑️ 𝐙𝐚𝐢𝐧𝐨 𝐑𝐢𝐦𝐨𝐬𝐬𝐨", color=discord.Color.red(),
                               timestamp=discord.utils.utcnow())
         embed.add_field(name="👤 Giocatore", value=giocatore.mention,        inline=True)
         embed.add_field(name="👮 Staff",     value=interaction.user.mention, inline=True)
