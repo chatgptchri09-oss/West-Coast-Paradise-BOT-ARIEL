@@ -2,28 +2,33 @@ import discord
 from discord import app_commands
 import database
 import aiosqlite
-from constants import LOG_CHANNEL_ID, DATABASE_NAME
+from constants import (
+    LOG_CHANNEL_ID, DATABASE_NAME, STAFF_ROLE_ID, CHIAVE_ROLE_ID,
+    ARMERIA_ROLE_ID, CONCESSIONARIO_ROLE_ID, MECCANICO_ROLE_ID, AGENZIA_IMMOBILIARE_ROLE_ID,
+    BANCA_ROLE_ID, MARKET_ROLE_ID, PEGASUS_ROLE_ID, NOTARIATO_ROLE_ID,
+    BAR_ROLE_ID, COUNTY_DONUTS_ROLE_ID, COUNTY_IMPOUND_ROLE_ID,
+    LOG_ARMERIA_CH, LOG_CONCESSIONARIO_CH, LOG_AGENZIA_CH, LOG_MECCANICO_CH,
+    LOG_PEGASUS_CH, LOG_NOTARIATO_CH, LOG_YELLOWJACK_CH, LOG_COUNTYDONUTS_CH, LOG_COUNTYIMPOUND_CH,
+)
 
 # Percentuale che va all'emittente (il resto va al fondo cassa azienda)
 PERCENTUALE_EMITTENTE = 0.25
 
-# ── Aziende per /fattura ───────────────────────────────────────────────────────
-ARMIERE_ROLE_ID   = 1415092383250382858
-CONCESSIONARIO_ROLE_ID    = 1415238213303406702
-AGENZIA_ROLE_ID   = 1424381004944244828
-STAFF_ROLE_ID     = 1414738761207517214
-CHIAVE_ROLE_ID    = 1414735564632231988
-MECCANICO_ROLE_ID = 1415240071216500746
-
-LOG_ARMERIA_CH    = 1424111403228205147
-LOG_CONCESSIONARIO_CH     = 1424111522107490405
-LOG_AGENZIA_CH    = 1528733707295264878
-LOG_MECCANICO_CH  = 1527399514317783050
-
+# NOTA: nomi allineati a COMPANY_ROLES/COMPANY_EMOJI in constants.py e commands_fondocassa.py
+# ⚠️ Banca e Market non hanno un canale log dedicato: uso LOG_CHANNEL_ID come fallback.
+#     Se vuoi canali log separati per Palomino Bank e Supermarket, mandami gli ID.
 AZIENDE_CONFIG = {
-    "Armeria":             {"ruolo": ARMIERE_ROLE_ID, "log_ch": LOG_ARMERIA_CH,  "emoji": "🔫", "fondocassa": "Armiere"},
-    "Stalla":              {"ruolo": STALLA_ROLE_ID,  "log_ch": LOG_STALLA_CH,   "emoji": "🐴", "fondocassa": "Stalla"},
-    "Agenzia Immobiliare": {"ruolo": AGENZIA_ROLE_ID, "log_ch": LOG_AGENZIA_CH,  "emoji": "🏡", "fondocassa": "Agenzia"},
+    "Armeria":        {"ruolo": ARMERIA_ROLE_ID,             "log_ch": LOG_ARMERIA_CH,       "emoji": "🔫", "fondocassa": "Armeria"},
+    "Concessionario":  {"ruolo": CONCESSIONARIO_ROLE_ID,      "log_ch": LOG_CONCESSIONARIO_CH, "emoji": "🚗", "fondocassa": "Concessionario"},
+    "Meccanico":       {"ruolo": MECCANICO_ROLE_ID,           "log_ch": LOG_MECCANICO_CH,     "emoji": "🔧", "fondocassa": "Meccanico"},
+    "Agenzia Imm.":    {"ruolo": AGENZIA_IMMOBILIARE_ROLE_ID, "log_ch": LOG_AGENZIA_CH,       "emoji": "🏠", "fondocassa": "Agenzia Imm."},
+    "Banca":           {"ruolo": BANCA_ROLE_ID,               "log_ch": LOG_CHANNEL_ID,       "emoji": "🏦", "fondocassa": "Banca"},
+    "Market":          {"ruolo": MARKET_ROLE_ID,              "log_ch": LOG_CHANNEL_ID,       "emoji": "🛒", "fondocassa": "Market"},
+    "Pegasus":         {"ruolo": PEGASUS_ROLE_ID,             "log_ch": LOG_PEGASUS_CH,       "emoji": "✈️", "fondocassa": "Pegasus"},
+    "Notariato":       {"ruolo": NOTARIATO_ROLE_ID,           "log_ch": LOG_NOTARIATO_CH,     "emoji": "📝", "fondocassa": "Notariato"},
+    "Bar":             {"ruolo": BAR_ROLE_ID,                 "log_ch": LOG_YELLOWJACK_CH,    "emoji": "🍻", "fondocassa": "Bar"},
+    "County Donuts":   {"ruolo": COUNTY_DONUTS_ROLE_ID,       "log_ch": LOG_COUNTYDONUTS_CH,  "emoji": "🍩", "fondocassa": "County Donuts"},
+    "County Impound":  {"ruolo": COUNTY_IMPOUND_ROLE_ID,      "log_ch": LOG_COUNTYIMPOUND_CH, "emoji": "🚛", "fondocassa": "County Impound"},
 }
 
 # ── Stato azioni criminali (in memoria — si resetta al riavvio) ────────────────
@@ -42,7 +47,7 @@ def _azienda_da_desc(description: str) -> tuple[str, dict] | tuple[None, None]:
 def setup_invoice_commands(bot):
 
     # ── /fattura ──────────────────────────────────────────────────────────────
-    @bot.tree.command(name="fattura", description="Emetti una fattura per un servizio nel Far West")
+    @bot.tree.command(name="fattura", description="Emetti una fattura per un servizio a Los Santos")
     @app_commands.describe(
         destinatario="Il giocatore a cui mandare la fattura",
         importo="Importo in dollari",
@@ -50,9 +55,17 @@ def setup_invoice_commands(bot):
         azienda="L'azienda che emette la fattura"
     )
     @app_commands.choices(azienda=[
-        app_commands.Choice(name="🔫 Armeria",             value="Armeria"),
-        app_commands.Choice(name="🐴 Stalla",              value="Stalla"),
-        app_commands.Choice(name="🏡 Agenzia Immobiliare", value="Agenzia Immobiliare"),
+        app_commands.Choice(name="🔫 Armeria",         value="Armeria"),
+        app_commands.Choice(name="🚗 Concessionario",  value="Concessionario"),
+        app_commands.Choice(name="🔧 Meccanico",       value="Meccanico"),
+        app_commands.Choice(name="🏠 Agenzia Imm.",    value="Agenzia Imm."),
+        app_commands.Choice(name="🏦 Banca",           value="Banca"),
+        app_commands.Choice(name="🛒 Market",          value="Market"),
+        app_commands.Choice(name="✈️ Pegasus",         value="Pegasus"),
+        app_commands.Choice(name="📝 Notariato",       value="Notariato"),
+        app_commands.Choice(name="🍻 Bar",             value="Bar"),
+        app_commands.Choice(name="🍩 County Donuts",   value="County Donuts"),
+        app_commands.Choice(name="🚛 County Impound",  value="County Impound"),
     ])
     async def fattura(interaction: discord.Interaction, destinatario: discord.Member,
                       importo: int, descrizione: str, azienda: str):
@@ -82,7 +95,7 @@ def setup_invoice_commands(bot):
 
         embed = discord.Embed(
             title=f"📜 𝐅𝐀𝐓𝐓𝐔𝐑𝐀 𝐄𝐌𝐄𝐒𝐒𝐀 — {az['emoji']} {azienda.upper()}",
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.add_field(name="🧾 N° Fattura",      value=f"#{invoice_id}",         inline=True)
@@ -96,7 +109,7 @@ def setup_invoice_commands(bot):
         embed.add_field(name="\u200b",             value="\u200b",                  inline=False)
         embed.add_field(name="💰 All'emittente (25%)",        value=f"${quota_emittente:,}", inline=True)
         embed.add_field(name=f"{az['emoji']} Fondo Cassa (75%)", value=f"${quota_fc:,}",     inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Fattura | Usa /pagafattura per pagare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Fattura | Usa /pagafattura per pagare")
         await interaction.response.send_message(embed=embed)
 
         # DM al destinatario
@@ -109,7 +122,7 @@ def setup_invoice_commands(bot):
                     f"**Azienda:** {az['emoji']} {azienda}\n\n"
                     f"Usa `/pagafattura` per pagare."
                 ),
-                color=discord.Color(0xDAA520)
+                color=discord.Color(0x1E90FF)
             )
             await destinatario.send(embed=dm)
         except Exception:
@@ -121,7 +134,7 @@ def setup_invoice_commands(bot):
             if log_ch:
                 log = discord.Embed(
                     title=f"📜 LOG — Fattura Emessa | {az['emoji']} {azienda}",
-                    color=discord.Color(0xDAA520),
+                    color=discord.Color(0x1E90FF),
                     timestamp=discord.utils.utcnow()
                 )
                 log.add_field(name="🧾 N° Fattura",                  value=f"#{invoice_id}",              inline=True)
@@ -148,7 +161,6 @@ def setup_invoice_commands(bot):
 
         options = []
         for inv in fatture[:25]:
-            # Mostra la descrizione pulita (senza " | Azienda" in fondo)
             desc_pulita = inv["description"].rsplit(" | ", 1)[0] if " | " in inv["description"] else inv["description"]
             label = f"#{inv['id']} — ${inv['amount']:,} — {desc_pulita[:40]}"[:100]
             options.append(discord.SelectOption(label=label, value=str(inv["id"])))
@@ -179,7 +191,6 @@ def setup_invoice_commands(bot):
                     )
                     return
 
-                # Scala prima dai contanti, poi dalla banca per il resto
                 if cash_disp >= importo:
                     nuovo_cash = cash_disp - importo
                     nuovo_bank = bank_disp
@@ -190,21 +201,16 @@ def setup_invoice_commands(bot):
                 quota_emittente = round(importo * PERCENTUALE_EMITTENTE)
                 quota_fc        = importo - quota_emittente
 
-                # Aggiorna saldo pagante
                 await database.update_balance(uid, cash=nuovo_cash, bank=nuovo_bank)
-                # Paga l'emittente (25% in contanti)
                 emitter = await database.get_user(invoice["from_user"])
                 await database.update_balance(invoice["from_user"], cash=emitter["cash"] + quota_emittente)
-                # Paga il 75% al fondo cassa dell'azienda
                 az_nome, az_cfg = _azienda_da_desc(invoice["description"])
                 if az_nome:
                     fc_attuale = await database.get_fondocassa(az_cfg["fondocassa"])
                     await database.update_fondocassa(az_cfg["fondocassa"], fc_attuale + quota_fc)
 
-                # Segna come pagata
                 await database.pay_invoice(invoice_id)
 
-                # Descrizione pulita per gli embed
                 desc_pulita = invoice["description"].rsplit(" | ", 1)[0] if " | " in invoice["description"] else invoice["description"]
 
                 embed = discord.Embed(
@@ -223,7 +229,7 @@ def setup_invoice_commands(bot):
                         name=f"{az_cfg['emoji']} Fondo Cassa {az_nome} (75%)",
                         value=f"${quota_fc:,}", inline=True
                     )
-                embed.set_footer(text="🤠 Red Dead Redemption II — Fattura")
+                embed.set_footer(text="🏙️ West Coast RP '93 — Fattura")
                 await itr.followup.send(embed=embed, ephemeral=True)
 
                 # ── Log canale generale ───────────────────────────────────────
@@ -275,7 +281,7 @@ def setup_invoice_commands(bot):
         embed_lista = discord.Embed(
             title="📜 𝐋𝐞 𝐭𝐮𝐞 𝐟𝐚𝐭𝐭𝐮𝐫𝐞 𝐢𝐧 𝐬𝐨𝐬𝐩𝐞𝐬𝐨",
             description="Seleziona la fattura che vuoi pagare dal menu qui sotto.",
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         for inv in fatture[:25]:
@@ -285,7 +291,7 @@ def setup_invoice_commands(bot):
                 value=f"📋 {desc_pulita}\n👤 Da: <@{inv['from_user']}>",
                 inline=False
             )
-        embed_lista.set_footer(text="🤠 Red Dead Redemption II — Fatture")
+        embed_lista.set_footer(text="🏙️ West Coast RP '93 — Fatture")
         await interaction.followup.send(embed=embed_lista, view=FatturaView(), ephemeral=True)
 
     # ── /leaderboard ──────────────────────────────────────────────────────────
@@ -304,8 +310,8 @@ def setup_invoice_commands(bot):
 
         def _build_embed(pagina: int) -> discord.Embed:
             embed = discord.Embed(
-                title="🏆 𝐋𝐞𝐚𝐝𝐞𝐫𝐛𝐨𝐚𝐫𝐝 — 𝐈 𝐏𝐢ù 𝐑𝐢𝐜𝐜𝐡𝐢 𝐝𝐞𝐥 𝐅𝐚𝐫 𝐖𝐞𝐬𝐭",
-                color=discord.Color(0xDAA520),
+                title="🏆 𝐋𝐞𝐚𝐝𝐞𝐫𝐛𝐨𝐚𝐫𝐝 — 𝐈 𝐏𝐢ù 𝐑𝐢𝐜𝐜𝐡𝐢 𝐝𝐢 𝐋𝐨𝐬 𝐒𝐚𝐧𝐭𝐨𝐬",
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             slice_ = utenti[pagina * PER_PAG:(pagina + 1) * PER_PAG]
@@ -320,7 +326,7 @@ def setup_invoice_commands(bot):
                 else:        medaglia = f"**#{i}**"
                 righe.append(f"{medaglia} {nome}\n┗ 🏦 Totale Soldi: **${totale:,}**")
             embed.description = "\n\n".join(righe)
-            embed.set_footer(text=f"🤠 Red Dead Redemption II — Pagina {pagina+1}/{tot_pag}")
+            embed.set_footer(text=f"🏙️ West Coast RP '93 — Pagina {pagina+1}/{tot_pag}")
             return embed
 
         class LeaderView(discord.ui.View):
@@ -365,7 +371,7 @@ def setup_invoice_commands(bot):
             timestamp=discord.utils.utcnow()
         )
         embed.set_image(url="https://i.postimg.cc/PfPSxmzZ/2b2664d3-4692-4371-8ddc-d59881a795dc.png")
-        embed.set_footer(text=f"🤠 Attivate da {interaction.user.display_name}")
+        embed.set_footer(text=f"🏙️ Attivate da {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
     # ── /azioni-criminali-off ─────────────────────────────────────────────────
@@ -385,5 +391,5 @@ def setup_invoice_commands(bot):
             timestamp=discord.utils.utcnow()
         )
         embed.set_image(url="https://i.postimg.cc/PfPSxmzZ/2b2664d3-4692-4371-8ddc-d59881a795dc.png")
-        embed.set_footer(text=f"🤠 Disattivate da {interaction.user.display_name}")
+        embed.set_footer(text=f"🏙️ Disattivate da {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
