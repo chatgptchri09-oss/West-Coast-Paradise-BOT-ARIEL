@@ -14,19 +14,27 @@ def _criminali_attivi() -> bool:
 _MSG_OFFLINE = "❌ Le **azioni criminali** sono attualmente **offline**.\nAttendi che lo Staff le riattivi."
 
 # ── Emoji animate ─────────────────────────────────────────────────────────────
-EMOJI_FUOCO       = "<a:fuoco:1502969683551453234>"
-EMOJI_CONFERMA    = "<a:conferma:1451983464764014733>"
-EMOJI_CARICAMENTO = "<a:Caricamento:1432417274983219276>"
+EMOJI_FUOCO       = "<a:fuoco:1529036911870742649>"
+EMOJI_CONFERMA    = "<a:conferma:1525966173798142063>"
+EMOJI_CARICAMENTO = "<a:caricamento:1525976204128157796>"
 
 # ── Ruoli ─────────────────────────────────────────────────────────────────────
 DROGA_CONFIG = {
-    "🍃 Tabacco":           1421166296850235602,
-    "🍁 Canapa":            1421166461988114532,
-    "🌿 Foglie di Cocaina": 1421166604447776780,
-    "💉 Eroina":            1404052027570524181,
+    "🍃 Tabacco":           1525776375108337684,
+    "🌿 Marijuana":         1525776513205669958,
+    "🍫 Hashish":           1525776690360356954,
+    "💉 Eroina":            1525777386279272518,
+    "🌱 Peyote":            1525776851342200943,
+    "⚪️ LSD":               1525777098424451162,
+    "💊 Ecstasy":           1525777174613856277,
+    "🥥 Cocaina":           1525777231312322620,
+    "❄️ Crack":             1525777301059534940,
+    "🧪 Metanfetamina":     1525777352053755914,
+    "💉 Eroina":            1525777386279272518,
+    
 }
 
-FALSARIO_ROLE_ID = 1404052043424989194  # Unico ruolo per creazione armi
+FALSARIO_ROLE_ID = 1525815621126979624  # Unico ruolo per creazione armi
 ITEM_FORBICI     = "✂️ • Forbici per raccolta droga"
 
 # Sessioni attive in memoria
