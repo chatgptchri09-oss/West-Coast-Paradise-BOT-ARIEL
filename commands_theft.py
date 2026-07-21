@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from datetime import datetime, timezone
 import database
-from constants import LOG_CHANNEL_ID, DISTILL_ROLE_ID
+from constants import LOG_CHANNEL_ID
 
 def _criminali_attivi() -> bool:
     try:
@@ -13,29 +13,30 @@ def _criminali_attivi() -> bool:
 
 _MSG_OFFLINE = "❌ Le **azioni criminali** sono attualmente **offline**.\nAttendi che lo Staff le riattivi."
 
+# ⚠️ Manca l'ID del ruolo "Distilleria" nel server: mandamelo e lo inserisco qui.
+DISTILL_ROLE_ID = 0
+
 # ── Emoji animate ─────────────────────────────────────────────────────────────
 EMOJI_FUOCO       = "<a:fuoco:1529036911870742649>"
 EMOJI_CONFERMA    = "<a:conferma:1525966173798142063>"
 EMOJI_CARICAMENTO = "<a:caricamento:1525976204128157796>"
 
-# ── Ruoli ─────────────────────────────────────────────────────────────────────
+# ── Ruoli droghe (dal ruoli server) ───────────────────────────────────────────
 DROGA_CONFIG = {
-    "🍃 Tabacco":           1525776375108337684,
-    "🌿 Marijuana":         1525776513205669958,
-    "🍫 Hashish":           1525776690360356954,
-    "💉 Eroina":            1525777386279272518,
-    "🌱 Peyote":            1525776851342200943,
-    "⚪️ LSD":               1525777098424451162,
-    "💊 Ecstasy":           1525777174613856277,
-    "🥥 Cocaina":           1525777231312322620,
-    "❄️ Crack":             1525777301059534940,
-    "🧪 Metanfetamina":     1525777352053755914,
-    "💉 Eroina":            1525777386279272518,
-    
+    "🍃 Tabacco":       1525776375108337684,
+    "🌿 Marijuana":     1525776513205669958,
+    "🍫 Hashish":       1525776690360356954,
+    "💉 Eroina":        1525777386279272518,
+    "🌱 Peyote":        1525776851342200943,
+    "⚪️ LSD":           1525777098424451162,
+    "💊 Ecstasy":       1525777174613856277,
+    "🥥 Cocaina":       1525777231312322620,
+    "❄️ Crack":         1525777301059534940,
+    "🧪 Metanfetamina": 1525777352053755914,
 }
 
-FALSARIO_ROLE_ID = 1525815621126979624  # Unico ruolo per creazione armi
-ITEM_FORBICI     = "✂️ • Forbici per raccolta droga"
+FALSARIO_ROLE_ID = 1525815621126979624  # Ruolo per creazione armi
+ITEM_FORBICI     = "✂️ • Forbici per raccolta"
 
 # Sessioni attive in memoria
 _raccolte_attive:          dict = {}
@@ -60,11 +61,18 @@ def _barra(secondi: float, max_s: int = 3600, lunghezza: int = 12) -> str:
 
 
 ARMI_CHOICES = [
-    app_commands.Choice(name="🔫 Revolver",       value="🔫 Revolver"),
-    app_commands.Choice(name="🔫 Fucile a Pompa", value="🔫 Fucile a Pompa"),
-    app_commands.Choice(name="🔫 Carabina",       value="🔫 Carabina"),
-    app_commands.Choice(name="🗡️ Coltello",       value="🗡️ Coltello"),
-    app_commands.Choice(name="💣 Dinamite",        value="💣 Dinamite"),
+    app_commands.Choice(name="🔫 Pistola",           value="🔫 Pistola"),
+    app_commands.Choice(name="🔫 Fucile a Pompa",    value="🔫 Fucile a Pompa"),
+    app_commands.Choice(name="🔫 Fucile d'Assalto",  value="🔫 Fucile d'Assalto"),
+    app_commands.Choice(name="🗡️ Coltello",          value="🗡️ Coltello"),
+    app_commands.Choice(name="💣 Esplosivo",          value="💣 Esplosivo"),
+]
+
+DROGA_CHOICES = [
+    app_commands.Choice(name="🍃 Tabacco",       value="🍃 Tabacco"),
+    app_commands.Choice(name="🌿 Marijuana",     value="🌿 Marijuana"),
+    app_commands.Choice(name="🥥 Cocaina",       value="🥥 Cocaina"),
+    app_commands.Choice(name="💉 Eroina",        value="💉 Eroina"),
 ]
 
 
@@ -76,12 +84,7 @@ def setup_theft_commands(bot):
 
     @bot.tree.command(name="inizio-raccolta", description="Inizia una sessione di raccolta droga")
     @app_commands.describe(droga="Tipo di droga da raccogliere", foto="Foto della sessione (OBBLIGATORIA)")
-    @app_commands.choices(droga=[
-        app_commands.Choice(name="🍃 Tabacco",           value="🍃 Tabacco"),
-        app_commands.Choice(name="🍁 Canapa",             value="🍁 Canapa"),
-        app_commands.Choice(name="🌿 Foglie di Cocaina",  value="🌿 Foglie di Cocaina"),
-        app_commands.Choice(name="💉 Eroina",             value="💉 Eroina"),
-    ])
+    @app_commands.choices(droga=DROGA_CHOICES)
     async def inizio_raccolta(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -100,22 +103,22 @@ def setup_theft_commands(bot):
                 f"❌ Non hai il ruolo richiesto per raccogliere **{droga}**.", ephemeral=True); return
         if await database.get_item_quantity(uid, ITEM_FORBICI) < 1:
             await interaction.response.send_message(
-                f"❌ Non hai **{ITEM_FORBICI}** nella bisaccia!", ephemeral=True); return
+                f"❌ Non hai **{ITEM_FORBICI}** nello zaino!", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _raccolte_attive[uid] = {"droga": droga, "inizio": now}
 
         embed = discord.Embed(
             title=f"{EMOJI_CARICAMENTO} 𝐑𝐀𝐂𝐂𝐎𝐋𝐓𝐀 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_CARICAMENTO}",
             description=(
-                "*Le mani si sporcano di terra. La raccolta ha inizio...*\n"
-                "*Muoviti in silenzio, viandante. Le autorità potrebbero essere vicine.*\n\u200b"
+                "*Le mani si sporcano, la raccolta ha inizio...*\n"
+                "*Muoviti in silenzio, le FDO potrebbero essere vicine.*\n\u200b"
             ),
             color=discord.Color(0x2E8B57),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🤠 Raccoglitore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🧍 Raccoglitore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
         embed.add_field(name="🌿 Tipo Droga",   value=f"**{droga}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
@@ -135,7 +138,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Raccolta | Usa /fine-raccolta per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta | Usa /fine-raccolta per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -144,12 +147,7 @@ def setup_theft_commands(bot):
 
     @bot.tree.command(name="fine-raccolta", description="Termina la sessione di raccolta droga")
     @app_commands.describe(droga="Tipo di droga che stavi raccogliendo")
-    @app_commands.choices(droga=[
-        app_commands.Choice(name="🍃 Tabacco",           value="🍃 Tabacco"),
-        app_commands.Choice(name="🍁 Canapa",             value="🍁 Canapa"),
-        app_commands.Choice(name="🌿 Foglie di Cocaina",  value="🌿 Foglie di Cocaina"),
-        app_commands.Choice(name="💉 Eroina",             value="💉 Eroina"),
-    ])
+    @app_commands.choices(droga=DROGA_CHOICES)
     async def fine_raccolta(interaction: discord.Interaction, droga: str):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -169,14 +167,14 @@ def setup_theft_commands(bot):
         embed = discord.Embed(
             title=f"{EMOJI_CONFERMA} 𝐑𝐀𝐂𝐂𝐎𝐋𝐓𝐀 𝐓𝐄𝐑𝐌𝐈𝐍𝐀𝐓𝐀 {EMOJI_CONFERMA}",
             description=(
-                "*La bisaccia è piena. Ora sparisci prima che qualcuno ti veda.*\n\u200b"
+                "*Lo zaino è pieno. Ora sparisci prima che qualcuno ti veda.*\n\u200b"
             ),
-            color=discord.Color(0x8B4513),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🤠 Raccoglitore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🧍 Raccoglitore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
         embed.add_field(name="🌿 Droga",        value=f"**{droga}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
@@ -193,7 +191,7 @@ def setup_theft_commands(bot):
             inline=True
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Raccolta Completata")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta Completata")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -206,12 +204,7 @@ def setup_theft_commands(bot):
 
     @bot.tree.command(name="inizio-vendita", description="Inizia una sessione di vendita droga")
     @app_commands.describe(droga="Tipo di droga da vendere", foto="Foto della sessione (OBBLIGATORIA)")
-    @app_commands.choices(droga=[
-        app_commands.Choice(name="🍃 Tabacco",           value="🍃 Tabacco"),
-        app_commands.Choice(name="🍁 Canapa",             value="🍁 Canapa"),
-        app_commands.Choice(name="🌿 Foglie di Cocaina",  value="🌿 Foglie di Cocaina"),
-        app_commands.Choice(name="💉 Eroina",             value="💉 Eroina"),
-    ])
+    @app_commands.choices(droga=DROGA_CHOICES)
     async def inizio_vendita(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -237,12 +230,12 @@ def setup_theft_commands(bot):
                 "*La merce cambia mani nell'ombra. L'affare ha inizio...*\n"
                 "*Occhi aperti, la legge potrebbe essere in agguato.*\n\u200b"
             ),
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🤠 Venditore",  value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🧍 Venditore",  value=f"{member.mention}\n`{member.display_name}`", inline=True)
         embed.add_field(name="🌿 Tipo Droga", value=f"**{droga}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
@@ -262,7 +255,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Vendita | Usa /fine-vendita per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita | Usa /fine-vendita per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -271,12 +264,7 @@ def setup_theft_commands(bot):
 
     @bot.tree.command(name="fine-vendita", description="Termina la sessione di vendita droga")
     @app_commands.describe(droga="Tipo di droga che stavi vendendo")
-    @app_commands.choices(droga=[
-        app_commands.Choice(name="🍃 Tabacco",           value="🍃 Tabacco"),
-        app_commands.Choice(name="🍁 Canapa",             value="🍁 Canapa"),
-        app_commands.Choice(name="🌿 Foglie di Cocaina",  value="🌿 Foglie di Cocaina"),
-        app_commands.Choice(name="💉 Eroina",             value="💉 Eroina"),
-    ])
+    @app_commands.choices(droga=DROGA_CHOICES)
     async def fine_vendita(interaction: discord.Interaction, droga: str):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -296,14 +284,14 @@ def setup_theft_commands(bot):
         embed = discord.Embed(
             title=f"{EMOJI_CONFERMA} 𝐕𝐄𝐍𝐃𝐈𝐓𝐀 𝐓𝐄𝐑𝐌𝐈𝐍𝐀𝐓𝐀 {EMOJI_CONFERMA}",
             description=(
-                "*L'oro è nelle tasche. L'affare è concluso.*\n\u200b"
+                "*I soldi sono nelle tasche. L'affare è concluso.*\n\u200b"
             ),
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🤠 Venditore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🧍 Venditore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
         embed.add_field(name="🌿 Droga",     value=f"**{droga}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
@@ -312,7 +300,7 @@ def setup_theft_commands(bot):
         embed.add_field(name="⏱️ Durata", value=f"```\n  {_durata_str(durata_s)}\n```", inline=True)
         embed.add_field(name="📊 Progresso", value=f"```\n  [{_barra(durata_s)}]\n```", inline=True)
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Vendita Completata")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita Completata")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -323,12 +311,12 @@ def setup_theft_commands(bot):
     #  DISTILLERIA — CREAZIONE ALCOOL
     # ══════════════════════════════════════════════════════════════════════════
 
-    @bot.tree.command(name="inizio-creazione-alcool", description="[Distilleria] Inizia la creazione di una partita di Moonshine")
+    @bot.tree.command(name="inizio-creazione-alcool", description="[Distilleria] Inizia la creazione di una partita di alcol clandestino")
     @app_commands.describe(foto="Foto della sessione (OBBLIGATORIA)")
     async def inizio_creazione_alcool(interaction: discord.Interaction, foto: discord.Attachment):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
-        alcool = "🌙 Moonshine"
+        alcool = "🥃 Alcol Clandestino"
         uid    = str(interaction.user.id)
         member = interaction.user
         if not foto.content_type or not foto.content_type.startswith("image/"):
@@ -346,15 +334,15 @@ def setup_theft_commands(bot):
         embed = discord.Embed(
             title=f"{EMOJI_FUOCO} 𝐂𝐑𝐄𝐀𝐙𝐈𝐎𝐍𝐄 𝐀𝐋𝐂𝐎𝐎𝐋 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_FUOCO}",
             description=(
-                "*Le botti fumano, l'alambicco bolle...*\n"
-                "*Il profumo del Moonshine riempie la stanza.*\n\u200b"
+                "*L'alambicco improvvisato ribolle in garage...*\n"
+                "*Il profumo dell'alcol clandestino riempie la stanza.*\n\u200b"
             ),
             color=discord.Color(0xC8860A),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
         embed.add_field(name="🥃 Prodotto",      value=f"**{alcool}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
@@ -374,14 +362,14 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | /fine-creazione-alcool per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /fine-creazione-alcool per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @bot.tree.command(name="fine-creazione-alcool", description="[Distilleria] Termina la creazione di una partita di Moonshine")
+    @bot.tree.command(name="fine-creazione-alcool", description="[Distilleria] Termina la creazione di una partita di alcol clandestino")
     async def fine_creazione_alcool(interaction: discord.Interaction):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -399,14 +387,14 @@ def setup_theft_commands(bot):
         embed = discord.Embed(
             title=f"{EMOJI_CONFERMA} 𝐂𝐑𝐄𝐀𝐙𝐈𝐎𝐍𝐄 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀𝐓𝐀 {EMOJI_CONFERMA}",
             description=(
-                "*La partita è pronta. L'odore si diffonde per la distilleria.*\n\u200b"
+                "*La partita è pronta. L'odore si diffonde per il garage.*\n\u200b"
             ),
             color=discord.Color(0x27AE60),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
         embed.add_field(name="🥃 Prodotto",      value=f"**{alcool}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
@@ -421,7 +409,7 @@ def setup_theft_commands(bot):
             inline=False
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | Produzione Completata")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | Produzione Completata")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -432,12 +420,12 @@ def setup_theft_commands(bot):
     #  DISTILLERIA — DISTILLAZIONE
     # ══════════════════════════════════════════════════════════════════════════
 
-    @bot.tree.command(name="inizio-distillazione", description="[Distilleria] Inizia una sessione di distillazione Moonshine")
+    @bot.tree.command(name="inizio-distillazione", description="[Distilleria] Inizia una sessione di distillazione")
     @app_commands.describe(foto="Foto della sessione (OBBLIGATORIA)")
     async def inizio_distillazione(interaction: discord.Interaction, foto: discord.Attachment):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
-        alcool = "🌙 Moonshine"
+        alcool = "🥃 Alcol Clandestino"
         uid    = str(interaction.user.id)
         member = interaction.user
         if not foto.content_type or not foto.content_type.startswith("image/"):
@@ -463,7 +451,7 @@ def setup_theft_commands(bot):
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
         embed.add_field(name="🔬 Distillato",    value=f"**{alcool}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
@@ -483,14 +471,14 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | /fine-distillazione per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /fine-distillazione per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @bot.tree.command(name="fine-distillazione", description="[Distilleria] Termina la sessione di distillazione Moonshine")
+    @bot.tree.command(name="fine-distillazione", description="[Distilleria] Termina la sessione di distillazione")
     async def fine_distillazione(interaction: discord.Interaction):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
@@ -515,7 +503,7 @@ def setup_theft_commands(bot):
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
         embed.add_field(name="🔬 Distillato",    value=f"**{alcool}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
@@ -530,7 +518,7 @@ def setup_theft_commands(bot):
             inline=False
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | Distillazione Completata")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | Distillazione Completata")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -538,10 +526,10 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  DISTILLERIA — VENDITA MOONSHINE
+    #  DISTILLERIA — VENDITA ALCOL
     # ══════════════════════════════════════════════════════════════════════════
 
-    @bot.tree.command(name="inizio-vendita-moonshine", description="[Distilleria] Inizia una sessione di vendita Moonshine")
+    @bot.tree.command(name="inizio-vendita-moonshine", description="[Distilleria] Inizia una sessione di vendita alcol clandestino")
     @app_commands.describe(foto="Foto della sessione (OBBLIGATORIA)")
     async def inizio_vendita_moonshine(interaction: discord.Interaction, foto: discord.Attachment):
         if not _criminali_attivi():
@@ -556,14 +544,14 @@ def setup_theft_commands(bot):
                 "❌ Solo i **Distillatori** possono usare questo comando.", ephemeral=True); return
         if uid in _vendite_moonshine_attive:
             await interaction.response.send_message(
-                "❌ Hai già una vendita di **🌙 Moonshine** in corso!\nUsa `/fine-vendita-moonshine` prima.", ephemeral=True); return
+                "❌ Hai già una vendita di **🥃 Alcol Clandestino** in corso!\nUsa `/fine-vendita-moonshine` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _vendite_moonshine_attive[uid] = {"inizio": now}
 
         embed = discord.Embed(
-            title=f"{EMOJI_CARICAMENTO} 𝐕𝐄𝐍𝐃𝐈𝐓𝐀 𝐌𝐎𝐎𝐍𝐒𝐇𝐈𝐍𝐄 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_CARICAMENTO}",
+            title=f"{EMOJI_CARICAMENTO} 𝐕𝐄𝐍𝐃𝐈𝐓𝐀 𝐀𝐋𝐂𝐎𝐋 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_CARICAMENTO}",
             description=(
-                "*Il contrabbandiere carica i barili sul carro...*\n"
+                "*Il contrabbandiere carica le casse sul furgone...*\n"
                 "*La notte è il momento migliore per i traffici oscuri.*\n\u200b"
             ),
             color=discord.Color(0x4B0082),
@@ -571,8 +559,8 @@ def setup_theft_commands(bot):
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
-        embed.add_field(name="🌙 Prodotto",      value="**🌙 Moonshine**", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🥃 Prodotto",      value="**🥃 Alcol Clandestino**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
             name="🕐 Inizio Vendita",
@@ -591,21 +579,21 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | /fine-vendita-moonshine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /fine-vendita-moonshine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @bot.tree.command(name="fine-vendita-moonshine", description="[Distilleria] Termina la sessione di vendita Moonshine")
+    @bot.tree.command(name="fine-vendita-moonshine", description="[Distilleria] Termina la sessione di vendita alcol clandestino")
     async def fine_vendita_moonshine(interaction: discord.Interaction):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid = str(interaction.user.id)
         if uid not in _vendite_moonshine_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna vendita Moonshine in corso. Usa `/inizio-vendita-moonshine` prima.", ephemeral=True); return
+                "❌ Non hai nessuna vendita di alcol in corso. Usa `/inizio-vendita-moonshine` prima.", ephemeral=True); return
         sessione = _vendite_moonshine_attive[uid]
         now      = datetime.now(timezone.utc)
         inizio   = sessione["inizio"]
@@ -613,17 +601,17 @@ def setup_theft_commands(bot):
         del _vendite_moonshine_attive[uid]
 
         embed = discord.Embed(
-            title=f"{EMOJI_CONFERMA} 𝐕𝐄𝐍𝐃𝐈𝐓𝐀 𝐌𝐎𝐎𝐍𝐒𝐇𝐈𝐍𝐄 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀𝐓𝐀 {EMOJI_CONFERMA}",
+            title=f"{EMOJI_CONFERMA} 𝐕𝐄𝐍𝐃𝐈𝐓𝐀 𝐀𝐋𝐂𝐎𝐋 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀𝐓𝐀 {EMOJI_CONFERMA}",
             description=(
-                "*I barili sono stati consegnati. L'oro scorre nelle tasche...*\n\u200b"
+                "*Le casse sono state consegnate. I soldi scorrono nelle tasche...*\n\u200b"
             ),
             color=discord.Color(0x9B59B6),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="👨‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
-        embed.add_field(name="🌙 Prodotto",      value="**🌙 Moonshine**", inline=True)
+        embed.add_field(name="🧑‍🏭 Distillatore", value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🥃 Prodotto",      value="**🥃 Alcol Clandestino**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
         embed.add_field(name="🕑 Fine",   value=f"> ⏰ {discord.utils.format_dt(now, style='T')}",   inline=True)
@@ -637,7 +625,7 @@ def setup_theft_commands(bot):
             inline=False
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Distilleria | Vendita Completata")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | Vendita Completata")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -648,9 +636,9 @@ def setup_theft_commands(bot):
     #  ARMERIA — CREAZIONE ARMI  🔫
     # ══════════════════════════════════════════════════════════════════════════
 
-    @bot.tree.command(name="inizio-creazione-armi", description="[Armeria] Inizia una sessione di forgiatura armi")
+    @bot.tree.command(name="inizio-creazione-armi", description="[Armeria] Inizia una sessione di costruzione armi")
     @app_commands.describe(
-        arma="Tipo di arma da forgiare",
+        arma="Tipo di arma da costruire",
         foto="Foto della sessione di lavoro (OBBLIGATORIA)"
     )
     @app_commands.choices(arma=ARMI_CHOICES)
@@ -664,16 +652,16 @@ def setup_theft_commands(bot):
         if not isinstance(member, discord.Member) or \
            not any(r.id == FALSARIO_ROLE_ID for r in member.roles):
             await interaction.response.send_message(
-                "❌ Non hai i permessi per forgiare armi.", ephemeral=True); return
+                "❌ Non hai i permessi per costruire armi.", ephemeral=True); return
         if uid in _creazioni_armi_attive:
             await interaction.response.send_message(
-                f"❌ Hai già una forgiatura di **{_creazioni_armi_attive[uid]['arma']}** in corso!\n"
+                f"❌ Hai già una costruzione di **{_creazioni_armi_attive[uid]['arma']}** in corso!\n"
                 f"Usa `/fine-creazione-armi` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _creazioni_armi_attive[uid] = {"arma": arma, "inizio": now}
 
         embed = discord.Embed(
-            title=f"{EMOJI_FUOCO} 𝐅𝐎𝐑𝐆𝐈𝐀𝐓𝐔𝐑𝐀 𝐀𝐑𝐌𝐈 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_FUOCO}",
+            title=f"{EMOJI_FUOCO} 𝐂𝐎𝐒𝐓𝐑𝐔𝐙𝐈𝐎𝐍𝐄 𝐀𝐑𝐌𝐈 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_FUOCO}",
             description=(
                 "```\n"
                 "  ██╗      █████╗ ██████╗  ██████╗ \n"
@@ -683,19 +671,19 @@ def setup_theft_commands(bot):
                 "  ███████╗██║  ██║██████╔╝╚██████╔╝\n"
                 "  ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ \n"
                 "```\n"
-                "*Il metallo arroventa la fucina. Le scintille volano nell'aria...*\n"
-                "*Il martello risuona. Un'altra leggenda sta per nascere.*\n\u200b"
+                "*Il banco da lavoro è pronto. Gli attrezzi sono affilati...*\n"
+                "*Un'altra arma sta per prendere forma nell'ombra.*\n\u200b"
             ),
             color=discord.Color(0xFF4500),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🔨 Armiere",         value=f"{member.mention}\n`{member.display_name}`", inline=True)
-        embed.add_field(name="🔫 Arma in Forgiatura", value=f"**{arma}**", inline=True)
+        embed.add_field(name="🔨 Armiere",            value=f"{member.mention}\n`{member.display_name}`", inline=True)
+        embed.add_field(name="🔫 Arma in Costruzione", value=f"**{arma}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
-            name="🕐 Inizio Forgiatura",
+            name="🕐 Inizio Costruzione",
             value=(
                 f"> 🗓️ {discord.utils.format_dt(now, style='D')}\n"
                 f"> ⏰ {discord.utils.format_dt(now, style='T')}\n"
@@ -706,13 +694,13 @@ def setup_theft_commands(bot):
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
             name="📊 Stato",
-            value="```ansi\n\u001b[1;31m🔥 FORGIATURA IN CORSO\u001b[0m\n```",
+            value="```ansi\n\u001b[1;31m🔥 COSTRUZIONE IN CORSO\u001b[0m\n```",
             inline=False
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
         embed.set_footer(
-            text="🤠 Red Dead Redemption II — Armeria | Usa /fine-creazione-armi per completare",
+            text="🏙️ West Coast RP '93 — Armeria | Usa /fine-creazione-armi per completare",
             icon_url=member.display_avatar.url
         )
         await interaction.response.send_message(embed=embed)
@@ -721,14 +709,14 @@ def setup_theft_commands(bot):
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @bot.tree.command(name="fine-creazione-armi", description="[Armeria] Termina la sessione di forgiatura armi")
+    @bot.tree.command(name="fine-creazione-armi", description="[Armeria] Termina la sessione di costruzione armi")
     async def fine_creazione_armi(interaction: discord.Interaction):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid = str(interaction.user.id)
         if uid not in _creazioni_armi_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna forgiatura in corso.\nUsa `/inizio-creazione-armi` prima.", ephemeral=True); return
+                "❌ Non hai nessuna costruzione in corso.\nUsa `/inizio-creazione-armi` prima.", ephemeral=True); return
         sessione = _creazioni_armi_attive[uid]
         arma     = sessione["arma"]
         now      = datetime.now(timezone.utc)
@@ -737,24 +725,24 @@ def setup_theft_commands(bot):
         del _creazioni_armi_attive[uid]
 
         embed = discord.Embed(
-            title=f"{EMOJI_CONFERMA} 𝐅𝐎𝐑𝐆𝐈𝐀𝐓𝐔𝐑𝐀 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀𝐓𝐀 {EMOJI_CONFERMA}",
+            title=f"{EMOJI_CONFERMA} 𝐂𝐎𝐒𝐓𝐑𝐔𝐙𝐈𝐎𝐍𝐄 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀𝐓𝐀 {EMOJI_CONFERMA}",
             description=(
-                "*Il metallo si è raffreddato. L'arma è pronta.*\n"
-                "*Una creazione degna del Far West è nata tra le mani dell'armiere.*\n\u200b"
+                "*Il lavoro è finito. L'arma è pronta.*\n"
+                "*Una creazione degna di Los Santos è nata dalle mani dell'armiere.*\n\u200b"
             ),
             color=discord.Color(0xFFD700),
             timestamp=discord.utils.utcnow()
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         embed.add_field(name="\u200b", value="╔══════════════════════════╗", inline=False)
-        embed.add_field(name="🔨 Armiere",    value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
-        embed.add_field(name="🔫 Arma Forgiata", value=f"**{arma}**", inline=True)
+        embed.add_field(name="🔨 Armiere",         value=f"{interaction.user.mention}\n`{interaction.user.display_name}`", inline=True)
+        embed.add_field(name="🔫 Arma Costruita",  value=f"**{arma}**", inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(name="🕐 Inizio", value=f"> ⏰ {discord.utils.format_dt(inizio, style='T')}", inline=True)
         embed.add_field(name="🕑 Fine",   value=f"> ⏰ {discord.utils.format_dt(now, style='T')}",   inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
-        embed.add_field(name="⏱️ Durata Forgiatura", value=f"```\n  {_durata_str(durata_s)}\n```", inline=True)
-        embed.add_field(name="📊 Progresso",          value=f"```\n  [{_barra(durata_s)}]\n```",    inline=True)
+        embed.add_field(name="⏱️ Durata Costruzione", value=f"```\n  {_durata_str(durata_s)}\n```", inline=True)
+        embed.add_field(name="📊 Progresso",           value=f"```\n  [{_barra(durata_s)}]\n```",    inline=True)
         embed.add_field(name="\u200b", value="╠══════════════════════════╣", inline=False)
         embed.add_field(
             name="✅ Stato Finale",
@@ -763,7 +751,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_footer(
-            text="🤠 Red Dead Redemption II | Forgiatura Completata",
+            text="🏙️ West Coast RP '93 | Costruzione Completata",
             icon_url=interaction.user.display_avatar.url
         )
         await interaction.response.send_message(embed=embed)
