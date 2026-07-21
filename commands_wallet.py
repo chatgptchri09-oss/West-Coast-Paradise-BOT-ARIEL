@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 import database
 from constants import (
-    BANKER_ROLE_ID, BANK_CHANNEL_ID, LOG_CHANNEL_ID,
+    BANCHIERE_ROLE_ID, BANK_CHANNEL_ID, LOG_CHANNEL_ID,
     STAFF_ROLES, has_staff
 )
 
