@@ -32,6 +32,7 @@ COUNTY_IMPOUND_ROLE_ID       = 1525773129492988014
 # ── Banca ─────────────────────────────────────
 BANCA_ROLE_ID      = 1431387710194454639   # Palomino Bank
 BANCHIERE_ROLE_ID  = 1431387710194454639   # alias per compatibilità
+BANK_CHANNEL_ID    = 1424111925360463882
 
 # ── Canali log aziende ────────────────────────
 LOG_ARMERIA_CH         = 1424111403228205147
