@@ -31,7 +31,7 @@ def setup_rpoff_commands(bot: commands.Bot):
             await interaction.response.send_message("❌ Non hai i permessi per utilizzare questo comando!", ephemeral=True)
             return
         embed = discord.Embed(
-            title="<a:offline:1459628872197738641> ROLEPLAY OFF",
+            title="<a:offline:1525963229056991254> ROLEPLAY OFFLINE <a:offline:1525963229056991254>",
             description=(
                 "<a:offline:1459628872197738641> La sessione di **roleplay è terminata**!\n\n"
                 "📌 • Ricorda di eseguire il comando `/fine-turno` per ricevere lo stipendio della giornata lavorativa.\n\n"
@@ -58,7 +58,7 @@ def setup_rpoff_commands(bot: commands.Bot):
             await interaction.response.send_message("❌ Non hai i permessi per utilizzare questo comando!", ephemeral=True)
             return
         embed = discord.Embed(
-            title="<a:online:1459627385702973572> ROLEPLAY ON",
+            title="<a:online:1525963385890410741> ROLEPLAY ONLINE <a:online:1525963385890410741>",
             description=(
                 "💬 La sessione roleplay è **UFFICIALMENTE ONLINE!**\n\n"
                 "🔥🎲 **È IL MOMENTO DI ENTRARE IN SCENA!**\n\n"
