@@ -3,9 +3,9 @@ from discord import app_commands
 from discord.ext import commands
 import asyncio
 
-AUTHORIZED_ROLE_ID = 1404051877212979302
-CITIZEN_ROLE_ID = 1404052056028872775
-LOG_CHANNEL_ID = 1479158931610931414
+AUTHORIZED_ROLE_ID = 1414753824463126611
+CITIZEN_ROLE_ID = 1414752091607535727
+LOG_CHANNEL_ID = 1415297578022604850
 
 def has_role(interaction: discord.Interaction, role_id: int) -> bool:
     if not isinstance(interaction.user, discord.Member):
@@ -35,21 +35,21 @@ def setup_rpoff_commands(bot: commands.Bot):
             description=(
                 "<a:offline:1459628872197738641> La sessione di **roleplay è terminata**!\n\n"
                 "📌 • Ricorda di eseguire il comando `/fine-turno` per ricevere lo stipendio della giornata lavorativa.\n\n"
-                "🙏 Grazie per aver giocato con noi su **Colorado Full RP**!"
+                "😇 Grazie per aver giocato con noi su **West Coast Full RP**!"
             ),
             color=discord.Color.red()
         )
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1235599658928308264/1250595400226963527/ServerOff.gif?ex=6918667a&is=691714fa&hm=be7932a6069a0f969d08a7d17d61584ba0a23c3ce21c6399e56355909bf56a1e&")
-        embed.set_footer(text="Colorado RP")
+        embed.set_image(url="https://i.postimg.cc/9QPgbLmc/IMG-0102.png")
+        embed.set_footer(text="West Coast RP")
         embed.timestamp = discord.utils.utcnow()
         await interaction.response.send_message(embed=embed)
         channel = interaction.channel
         await asyncio.sleep(1)
-        await channel.send("<@&1404052056028872775> LA SESSIONE È STATA CHIUSA GRAZIE A TUTTI PER AVER GIOCATO")
+        await channel.send("<@&1414752091607535727> LA SESSIONE È STATA CHIUSA GRAZIE A TUTTI PER AVER GIOCATO")
         await asyncio.sleep(1)
-        await channel.send("<@&1404052056028872775> TI ASPETTIAMO NELLA PROSSIMA SESSIONE!")
+        await channel.send("<@&1414752091607535727> VI ASPETTIAMO NELLA PROSSIMA SESSIONE, BUON PROSEGUIMENTO!")
         await asyncio.sleep(1)
-        await channel.send("<@&1404052056028872775> NON PERDETEVI IL TURNO! TERMINA IL TUO CON `/fine-turno`")
+        await channel.send("<@&1414752091607535727> NON PERDETEVI IL TURNO! TERMINA IL TUO CON `/fine-turno` PER RICEVERE LO STIPENDIO")
 
     @bot.tree.command(name="rpon", description="Avvia la sessione di roleplay")
     @app_commands.describe(idps4="L'ID PS4 dell'utente che avvia la sessione")
@@ -60,14 +60,14 @@ def setup_rpoff_commands(bot: commands.Bot):
         embed = discord.Embed(
             title="<a:online:1459627385702973572> ROLEPLAY ON",
             description=(
-                "💬 La roleplay è **UFFICIALMENTE ON!**\n\n"
-                "💃🕺 **DIAMO IL VIA ALLE DANZE!**\n\n"
+                "💬 La sessione roleplay è **UFFICIALMENTE ONLINE!**\n\n"
+                "🔥🎲 **È IL MOMENTO DI ENTRARE IN SCENA!**\n\n"
                 "<a:online:1459627385702973572> ⏱️ *Avvia il tuo turno con* `/inizio-turno`"
             ),
             color=discord.Color.green()
         )
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1235599658928308264/1250595400616771614/ServerOn.gif?ex=6918667a&is=691714fa&hm=040de693ddd56f45ef5ee93116185cad03061f91bf9a02b04b5eda504779cd22&")
-        embed.set_footer(text="Colorado RP")
+        embed.set_image(url="https://i.postimg.cc/Hnh1pBJh/IMG-0101.png")
+        embed.set_footer(text="West Coast RP")
         embed.timestamp = discord.utils.utcnow()
         await interaction.response.send_message(embed=embed)
         channel = interaction.channel
@@ -90,11 +90,11 @@ def setup_rpoff_commands(bot: commands.Bot):
             description=(
                 "Rispondi con una delle seguenti reazioni:\n\n"
                 "✅ **Sì**\n"
-                "Pronto per il roleplay!\n\n"
+                "Ci sarò in rp!\n\n"
                 "❌ **No**\n"
-                "Non disponibile.\n\n"
+                "Non ci sarò in rp.\n\n"
                 "⏳ **Forse più tardi**\n"
-                "Potrei unirmi più tardi.\n\n"
+                "Potrei esserci più tardi.\n\n"
             ),
             color=discord.Color.green()
         )
