@@ -8,7 +8,7 @@ from constants import (
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PORTAFOGLIO — Select Menu con Documento, Bisaccia, Proprietà (NO SOLDI)
+#  PORTAFOGLIO — Select Menu con Documento, Zaino, Proprietà (NO SOLDI)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _hunger_bar(v: int) -> str:
@@ -22,10 +22,10 @@ class PortafoglioSelect(discord.ui.Select):
         options = [
             discord.SelectOption(label="📜 Documento d'identità", value="documento",
                                  description="Visualizza il tuo documento ufficiale"),
-            discord.SelectOption(label="🎒 Bisaccia", value="bisaccia",
-                                 description="Contenuto della tua bisaccia e stato fisico"),
+            discord.SelectOption(label="🎒 Zaino", value="zaino",
+                                 description="Contenuto del tuo zaino e stato fisico"),
             discord.SelectOption(label="🏡 Proprietà", value="proprieta",
-                                 description="Le tue proprietà nel Far West"),
+                                 description="Le tue proprietà a Los Santos"),
             discord.SelectOption(label="⚖️ Fedina Penale", value="fedina",
                                  description="I tuoi precedenti con la legge"),
         ]
@@ -44,7 +44,7 @@ class PortafoglioSelect(discord.ui.Select):
             doc = await database.get_document(user_id)
             embed = discord.Embed(
                 title="📜 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
-                color=discord.Color(0x8B4513),
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             if not doc:
@@ -58,36 +58,36 @@ class PortafoglioSelect(discord.ui.Select):
                 embed.add_field(name="📅 Emesso il",       value=doc["created_at"],     inline=True)
                 if doc.get("foto_url"):
                     embed.set_image(url=doc["foto_url"])
-            embed.set_footer(text="🤠 Red Dead Redemption II — Documento")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Documento")
             await interaction.response.edit_message(embed=embed, view=self.view)
 
-        elif val == "bisaccia":
+        elif val == "zaino":
             items = await database.get_inventory(user_id)
             user  = await database.get_user(user_id)
             embed = discord.Embed(
-                title="🎒 𝐋𝐚 𝐭𝐮𝐚 𝐁𝐢𝐬𝐚𝐜𝐜𝐢𝐚",
-                color=discord.Color(0x8B4513),
+                title="🎒 𝐈𝐥 𝐭𝐮𝐨 𝐙𝐚𝐢𝐧𝐨",
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             embed.add_field(name="🍔 Fame", value=_hunger_bar(user["hunger"]), inline=True)
             embed.add_field(name="💦 Sete", value=_hunger_bar(user["thirst"]), inline=True)
             if not items:
-                embed.add_field(name="📦 Contenuto", value="*Bisaccia vuota.*", inline=False)
+                embed.add_field(name="📦 Contenuto", value="*Zaino vuoto.*", inline=False)
             else:
                 desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in items)
                 embed.add_field(name="📦 Contenuto", value=desc, inline=False)
-            embed.set_footer(text="🤠 Red Dead Redemption II — Bisaccia")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
             await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "proprieta":
             props = await database.get_properties(user_id)
             embed = discord.Embed(
                 title="🏡 𝐋𝐞 𝐭𝐮𝐞 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à",
-                color=discord.Color(0x8B4513),
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             if not props:
-                embed.description = "*Non possiedi ancora nessuna proprietà nel Far West.*"
+                embed.description = "*Non possiedi ancora nessuna proprietà a Los Santos.*"
             else:
                 for p in props:
                     embed.add_field(
@@ -95,18 +95,18 @@ class PortafoglioSelect(discord.ui.Select):
                         value=f"📍 {p['location']}\n📅 {p['created_at']}",
                         inline=False
                     )
-            embed.set_footer(text="🤠 Red Dead Redemption II — Proprietà")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Proprietà")
             await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "fedina":
             records = await database.get_criminal_records(user_id)
             embed = discord.Embed(
                 title="⚖️ 𝐅𝐞𝐝𝐢𝐧𝐚 𝐏𝐞𝐧𝐚𝐥𝐞",
-                color=discord.Color(0x8B4513),
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             if not records:
-                embed.description = "✅ *Nessun crimine registrato. Sei un uomo onesto, cowboy.*"
+                embed.description = "✅ *Nessun crimine registrato. Fedina pulita.*"
             else:
                 for r in records[:8]:
                     embed.add_field(
@@ -114,7 +114,7 @@ class PortafoglioSelect(discord.ui.Select):
                         value=f"🔒 {r['sentence']}\n👮 {r['officer']}\n📅 {r['created_at']}",
                         inline=False
                     )
-            embed.set_footer(text="🤠 Red Dead Redemption II — Fedina Penale")
+            embed.set_footer(text="🏙️ West Coast RP '93 — Fedina Penale")
             await interaction.response.edit_message(embed=embed, view=self.view)
 
 
@@ -170,8 +170,8 @@ class BancaModal(discord.ui.Modal):
 
         label = "Prelievo" if self.action == "preleva" else "Deposito"
         embed = discord.Embed(
-            title=f"🏦 𝐑𝐢𝐜𝐡𝐢𝐞𝐬𝐭𝐚 𝐝𝐢 {label}",  # ✅ CORRETTO
-            color=discord.Color(0xDAA520),
+            title=f"🏦 𝐑𝐢𝐜𝐡𝐢𝐞𝐬𝐭𝐚 𝐝𝐢 {label}",
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
@@ -180,7 +180,7 @@ class BancaModal(discord.ui.Modal):
         embed.add_field(name="📋 Operazione",      value=label,                     inline=True)
         embed.add_field(name="💵 Contanti att.",   value=f"${user['cash']:,}",      inline=True)
         embed.add_field(name="🏦 Banca att.",      value=f"${user['bank']:,}",      inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Banca | Solo il Banchiere può approvare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Banca | Solo il Banchiere può approvare")
 
         view = ConfermaOperazioneView(str(interaction.user.id), amount, self.action)
         await bank_ch.send(
@@ -235,7 +235,7 @@ class ConfermaOperazioneView(discord.ui.View):
             try:
                 dm = discord.Embed(title="🏦 𝐎𝐩𝐞𝐫𝐚𝐳𝐢𝐨𝐧𝐞 𝐁𝐚𝐧𝐜𝐚𝐫𝐢𝐚 𝐀𝐩𝐩𝐫𝐨𝐯𝐚𝐭𝐚", description=esito,
                                    color=discord.Color.green(), timestamp=discord.utils.utcnow())
-                dm.set_footer(text="🤠 Red Dead Redemption II — Banca")
+                dm.set_footer(text="🏙️ West Coast RP '93 — Banca")
                 await member.send(embed=dm)
             except Exception:
                 pass
@@ -256,7 +256,7 @@ class ConfermaOperazioneView(discord.ui.View):
                     description=f"La tua richiesta di **{label}** di **${self.amount:,}** è stata **rifiutata** dal Banchiere.",
                     color=discord.Color.red(), timestamp=discord.utils.utcnow()
                 )
-                dm.set_footer(text="🤠 Red Dead Redemption II — Banca")
+                dm.set_footer(text="🏙️ West Coast RP '93 — Banca")
                 await member.send(embed=dm)
             except Exception:
                 pass
@@ -295,13 +295,13 @@ def setup_wallet_commands(bot):
             title=f"<a:Portafoglio:1462442004569919629> 𝐏𝐨𝐫𝐭𝐚𝐟𝐨𝐠𝐥𝐢𝐨 𝐝𝐢 {interaction.user.mention}",
             description=(
                 "Seleziona una sezione dal menu qui sotto per visualizzare\n"
-                "le tue informazioni personali nel Far West."
+                "le tue informazioni personali a Los Santos."
             ),
-            color=discord.Color(0x8B4513),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Portafoglio")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Portafoglio")
         view = PortafoglioView(interaction.user)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -310,8 +310,8 @@ def setup_wallet_commands(bot):
     async def banca(interaction: discord.Interaction):
         user = await database.get_user(str(interaction.user.id))
         embed = discord.Embed(
-            title="🏦 𝐁𝐚𝐧𝐜𝐚 𝐝𝐞𝐥 𝐅𝐚𝐫 𝐖𝐞𝐬𝐭",
-            color=discord.Color(0xDAA520),
+            title="🏦 𝐏𝐚𝐥𝐨𝐦𝐢𝐧𝐨 𝐁𝐚𝐧𝐤",
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
@@ -319,10 +319,10 @@ def setup_wallet_commands(bot):
         embed.add_field(name="💵 Contanti",    value=f"${user['cash']:,}",            inline=True)
         embed.add_field(name="🏦 In banca",    value=f"${user['bank']:,}",            inline=True)
         embed.add_field(name="💰 Totale",      value=f"${user['cash']+user['bank']:,}", inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Le operazioni richiedono l'approvazione del Banchiere")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Le operazioni richiedono l'approvazione del Banchiere")
         await interaction.response.send_message(embed=embed, view=BancaView(str(interaction.user.id)), ephemeral=True)
 
-    # ── /paga (ex /bonifico) ─────────────────────────────────────────────────
+    # ── /paga ────────────────────────────────────────────────────────────────
     @bot.tree.command(name="paga", description="Paga un altro giocatore in contanti (trasferimento diretto)")
     @app_commands.describe(
         giocatore="Il giocatore a cui pagare",
@@ -349,13 +349,12 @@ def setup_wallet_commands(bot):
 
         destinatario = await database.get_user(str(giocatore.id))
 
-        # Trasferisce in CONTANTI (non banca)
         await database.update_balance(str(interaction.user.id), cash=mittente["cash"] - importo)
         await database.update_balance(str(giocatore.id),        cash=destinatario["cash"] + importo)
 
         embed = discord.Embed(
             title="💸 𝐏𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨 𝐄𝐟𝐟𝐞𝐭𝐭𝐮𝐚𝐭𝐨",
-            color=discord.Color(0xDAA520),
+            color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
         embed.add_field(name="👤 Da",        value=interaction.user.mention, inline=True)
@@ -363,10 +362,9 @@ def setup_wallet_commands(bot):
         embed.add_field(name="💵 Importo",   value=f"${importo:,}",          inline=True)
         if causale:
             embed.add_field(name="📋 Causale", value=causale, inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Pagamento in Contanti")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Pagamento in Contanti")
         await interaction.response.send_message(embed=embed)
 
-        # DM al destinatario
         try:
             dm = discord.Embed(
                 title="💵 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧 𝐩𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨!",
@@ -376,12 +374,11 @@ def setup_wallet_commands(bot):
                 ),
                 color=discord.Color.green()
             )
-            dm.set_footer(text="🤠 Red Dead Redemption II")
+            dm.set_footer(text="🏙️ West Coast RP '93")
             await giocatore.send(embed=dm)
         except Exception:
             pass
 
-        # Log
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
