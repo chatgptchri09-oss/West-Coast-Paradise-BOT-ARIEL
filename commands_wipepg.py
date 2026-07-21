@@ -5,7 +5,7 @@ import aiosqlite
 from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff
 
 # ID ruolo autorizzato a usare /wipe-totale
-WIPE_TOTALE_ROLE_ID = 1414922994723196979
+WIPE_TOTALE_ROLE_ID = 1404051860121456701
 
 def setup_wipepg_commands(bot: commands.Bot):
 
@@ -28,10 +28,10 @@ def setup_wipepg_commands(bot: commands.Bot):
             name="📋 Cosa verrà eliminato:",
             value=(
                 "• 💰 **Soldi** (reset a $50 in contanti)\n"
-                "• 🎒 **Inventario/Bisaccia** (tutto)\n"
+                "• 🎒 **Zaino** (tutto)\n"
                 "• 📄 **Documenti** (tutti)\n"
                 "• 🏠 **Proprietà** (tutte)\n"
-                "• 🚨 **Taglie/Multe** (tutte)\n"
+                "• 🚨 **Multe** (tutte)\n"
                 "• 📜 **Fedina penale** (tutta)\n"
                 "• ⛓️ **Arresti** (tutti)\n"
                 "• 📄 **Fatture** (tutte)\n"
@@ -56,14 +56,12 @@ def setup_wipepg_commands(bot: commands.Bot):
     # ══════════════════════════════════════════════════════════════════════════
     @bot.tree.command(name="wipe-totale", description="[OWNER] Resetta TUTTI gli utenti del server")
     async def wipe_totale(interaction: discord.Interaction):
-        # Controllo ruolo
         has_role = (
             isinstance(interaction.user, discord.Member) and
             any(r.id == WIPE_TOTALE_ROLE_ID for r in interaction.user.roles)
         )
 
         if not has_role:
-            # Log del tentativo
             try:
                 ch = bot.get_channel(LOG_CHANNEL_ID)
                 if ch:
@@ -85,7 +83,6 @@ def setup_wipepg_commands(bot: commands.Bot):
             )
             return
 
-        # Embed di conferma
         confirm_embed = discord.Embed(
             title="☠️ ATTENZIONE — WIPE TOTALE SERVER",
             description=(
@@ -98,10 +95,10 @@ def setup_wipepg_commands(bot: commands.Bot):
             name="📋 Cosa verrà eliminato per OGNI utente:",
             value=(
                 "• 💰 **Soldi** (reset a $50 in contanti)\n"
-                "• 🎒 **Inventario/Bisaccia** (tutto)\n"
+                "• 🎒 **Zaino** (tutto)\n"
                 "• 📄 **Documenti** (tutti)\n"
                 "• 🏠 **Proprietà** (tutte)\n"
-                "• 🚨 **Taglie/Multe** (tutte)\n"
+                "• 🚨 **Multe** (tutte)\n"
                 "• 📜 **Fedina penale** (tutta)\n"
                 "• ⛓️ **Arresti** (tutti)\n"
                 "• 📄 **Fatture** (tutte)\n"
@@ -122,7 +119,7 @@ def setup_wipepg_commands(bot: commands.Bot):
             value="Premi **✅ CONFERMO IL WIPE TOTALE** per procedere oppure **❌ Annulla** per fermarti.",
             inline=False
         )
-        confirm_embed.set_footer(text="🤠 Red Dead Redemption II — Solo il proprietario può eseguire questa azione")
+        confirm_embed.set_footer(text="🏙️ West Coast RP '93 — Solo il proprietario può eseguire questa azione")
 
         view = WipeTotaleConfirmView(bot, interaction.user)
         await interaction.response.send_message(embed=confirm_embed, view=view, ephemeral=True)
@@ -223,10 +220,10 @@ class WipeConfirmView(discord.ui.View):
             )
             success_embed.add_field(name="📊 Dettaglio:", value=(
                 f"• 💰 Soldi: {stats['soldi']}\n"
-                f"• 🎒 Inventario: {stats['inventario']} item rimossi\n"
+                f"• 🎒 Zaino: {stats['inventario']} item rimossi\n"
                 f"• 📄 Documenti: {stats['documenti']} rimossi\n"
                 f"• 🏠 Proprietà: {stats['proprieta']} rimosse\n"
-                f"• 🚨 Taglie: {stats['taglie']} rimosse\n"
+                f"• 🚨 Multe: {stats['taglie']} rimosse\n"
                 f"• 📜 Fedina penale: {stats['fedina']} record rimossi\n"
                 f"• ⛓️ Arresti: {stats['arresti']} rimossi\n"
                 f"• 📄 Fatture: {stats['fatture']} rimosse\n"
@@ -246,7 +243,7 @@ class WipeConfirmView(discord.ui.View):
                     color=discord.Color.orange()
                 )
                 dm.add_field(name="💰 Nuovo saldo", value="$50 in contanti", inline=False)
-                dm.set_footer(text="🤠 Red Dead Redemption II — Colorado Full RP")
+                dm.set_footer(text="🏙️ West Coast RP '93")
                 await self.target_user.send(embed=dm)
             except Exception:
                 pass
@@ -328,18 +325,14 @@ class WipeTotaleConfirmView(discord.ui.View):
 
         try:
             async with aiosqlite.connect(DATABASE_NAME) as db:
-                # Recupera tutti gli user_id esistenti
                 async with db.execute("SELECT user_id FROM users") as c:
                     all_users = [row[0] for row in await c.fetchall()]
 
-                # Reset tabella users (tutti a $50 contanti, banca 0, fame/sete 100)
-                # NON tocchiamo shop_items né fondocassa
                 r = await db.execute(
                     "UPDATE users SET cash=50, bank=0, hunger=100, thirst=100"
                 )
                 totals["utenti"] = r.rowcount
 
-                # Svuota tabelle per ogni utente
                 for table, key in [
                     ("inventory",        "inventory"),
                     ("documents",        "documenti"),
@@ -354,14 +347,12 @@ class WipeTotaleConfirmView(discord.ui.View):
                     except Exception:
                         pass
 
-                # Fatture
                 try:
                     r3 = await db.execute("DELETE FROM invoices")
                     totals["fatture"] = r3.rowcount
                 except Exception:
                     pass
 
-                # Turni attivi
                 try:
                     await db.execute("""
                         CREATE TABLE IF NOT EXISTS turni_attivi (
@@ -374,7 +365,6 @@ class WipeTotaleConfirmView(discord.ui.View):
                 except Exception:
                     pass
 
-                # Oggetti nascosti
                 try:
                     await db.execute("""
                         CREATE TABLE IF NOT EXISTS hidden_items (
@@ -388,14 +378,12 @@ class WipeTotaleConfirmView(discord.ui.View):
                 except Exception:
                     pass
 
-                # Usura armi
                 try:
                     r6 = await db.execute("DELETE FROM weapon_durability")
                     totals["usura"] = r6.rowcount
                 except Exception:
                     pass
 
-                # Documenti falsi
                 try:
                     await db.execute("DELETE FROM fake_documents")
                 except Exception:
@@ -403,7 +391,6 @@ class WipeTotaleConfirmView(discord.ui.View):
 
                 await db.commit()
 
-            # ── Embed successo ───────────────────────────────────────────────
             success_embed = discord.Embed(
                 title="☠️ WIPE TOTALE COMPLETATO",
                 description=f"Tutti i dati di **{totals['utenti']} utenti** sono stati azzerati.",
@@ -412,10 +399,10 @@ class WipeTotaleConfirmView(discord.ui.View):
             )
             success_embed.add_field(name="📊 Dettaglio operazione:", value=(
                 f"• 💰 Utenti resettati: **{totals['utenti']}** (→ $50 contanti)\n"
-                f"• 🎒 Item inventario rimossi: **{totals['inventory']}**\n"
+                f"• 🎒 Item zaino rimossi: **{totals['inventory']}**\n"
                 f"• 📄 Documenti rimossi: **{totals['documenti']}**\n"
                 f"• 🏠 Proprietà rimosse: **{totals['proprieta']}**\n"
-                f"• 🚨 Taglie/Multe rimosse: **{totals['taglie']}**\n"
+                f"• 🚨 Multe rimosse: **{totals['taglie']}**\n"
                 f"• 📜 Record fedina rimossi: **{totals['fedina']}**\n"
                 f"• ⛓️ Arresti rimossi: **{totals['arresti']}**\n"
                 f"• 📄 Fatture rimosse: **{totals['fatture']}**\n"
@@ -429,11 +416,10 @@ class WipeTotaleConfirmView(discord.ui.View):
                 inline=False
             )
             success_embed.add_field(name="👮 Eseguito da", value=self.admin_user.mention, inline=True)
-            success_embed.set_footer(text="🤠 Red Dead Redemption II — Wipe Totale")
+            success_embed.set_footer(text="🏙️ West Coast RP '93 — Wipe Totale")
 
             await interaction.followup.send(embed=success_embed, ephemeral=True)
 
-            # ── Log ──────────────────────────────────────────────────────────
             try:
                 ch = self.bot.get_channel(LOG_CHANNEL_ID)
                 if ch:
@@ -445,8 +431,8 @@ class WipeTotaleConfirmView(discord.ui.View):
                     log.add_field(name="👮 Eseguito da",    value=self.admin_user.mention,    inline=True)
                     log.add_field(name="👥 Utenti azzerati", value=str(totals['utenti']),     inline=True)
                     log.add_field(name="📊 Dettaglio", value=(
-                        f"Inventory: {totals['inventory']} | Documenti: {totals['documenti']} | "
-                        f"Proprietà: {totals['proprieta']} | Taglie: {totals['taglie']} | "
+                        f"Zaino: {totals['inventory']} | Documenti: {totals['documenti']} | "
+                        f"Proprietà: {totals['proprieta']} | Multe: {totals['taglie']} | "
                         f"Fedina: {totals['fedina']} | Arresti: {totals['arresti']} | "
                         f"Fatture: {totals['fatture']} | Turni: {totals['turni']} | "
                         f"Nascosti: {totals['nascosti']} | Usura: {totals['usura']}"
@@ -455,7 +441,6 @@ class WipeTotaleConfirmView(discord.ui.View):
             except Exception:
                 pass
 
-            # Disabilita bottoni
             for item in self.children:
                 item.disabled = True
             await interaction.message.edit(view=self)
