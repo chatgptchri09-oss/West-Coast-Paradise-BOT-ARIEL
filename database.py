@@ -124,7 +124,7 @@ async def init_db():
                 pass
 
         await db.commit()
-    print("✅ Database RDR2 inizializzato", flush=True)
+    print("✅ Database West Coast RP '93 inizializzato", flush=True)
 
 
 # ── UTENTI ────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ async def update_hunger_thirst(user_id: str, hunger: int = None, thirst: int = N
         await db.commit()
 
 
-# ── INVENTARIO ────────────────────────────────────────────────────────────────
+# ── ZAINO / INVENTARIO ────────────────────────────────────────────────────────
 
 async def get_inventory(user_id: str) -> list:
     async with aiosqlite.connect(DATABASE_NAME) as db:
@@ -239,7 +239,7 @@ async def delete_shop_item(name: str):
         await db.commit()
 
 
-# ── TAGLIE / MULTE ────────────────────────────────────────────────────────────
+# ── MULTE ─────────────────────────────────────────────────────────────────────
 
 async def add_fine(user_id: str, amount: int, reason: str, issued_by: str):
     from datetime import datetime
