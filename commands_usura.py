@@ -6,8 +6,8 @@ import time
 from constants import LOG_CHANNEL_ID, DATABASE_NAME
 
 # ── Costanti ──────────────────────────────────────────────────────────────────
-OLIO_ITEM    = "<:OlioArmi:1483872658574544988> • Olio per Armi"
-COTE_ITEM    = "<:Cote:1483873630986174484> • Cote"
+OLIO_ITEM    = "<:olioarmi:1529039662327398452> • Olio per Armi"
+COTE_ITEM    = "<:cote:1529039996491661352> • Cote"
 AVVISI_USURA = {75, 50, 25, 10, 5, 0}
 
 # ── Armi da FUOCO (-5%/24h, -2% per passaggio) ───────────────────────────────
