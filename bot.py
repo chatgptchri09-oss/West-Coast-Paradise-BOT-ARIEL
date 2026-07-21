@@ -11,9 +11,9 @@ sys.stdout.reconfigure(line_buffering=True)
 import database
 import backup
 from constants import (
-    STAFF_ROLE_ID, SCERIFFO_ROLE_ID, DOTTORE_ROLE_ID, ARMIERE_ROLE_ID,
-    STALLA_ROLE_ID, SALOON_ROLE_ID, EMPORIO_ROLE_ID, CONTRABBANDO_ID,
-    STATO_ROLE_ID, DILIGENZA_ROLE_ID, CHIAVE_ROLE_ID, BANKER_ROLE_ID,
+    STAFF_ROLE_ID, FORZEDELLORDINE_ROLE_ID, DOTTORE_ROLE_ID, ARMERIA_ROLE_ID,
+    BAR_ROLE_ID, MARKET_ROLE_ID, CONTRABBANDO_DOC_ROLE_ID,
+    STATO_ROLE_ID, CHIAVE_ROLE_ID, BANCHIERE_ROLE_ID,
     LOG_CHANNEL_ID, BANK_CHANNEL_ID, DATABASE_NAME, STAFF_ROLES,
     has_staff, has_sceriffo, has_role_id
 )
@@ -50,7 +50,9 @@ _modules = [
     ("commands_wipepg",          "setup_wipepg_commands"),
     ("commands_deposits",        "setup_deposits_commands"),
     ("commands_gazzetta",        "setup_gazzetta_commands"),
-    ("commands_marijuana",       "setup_marijuana_commands")
+    ("commands_marijuana",       "setup_marijuana_commands"),
+    ("commands_property",        "setup_property_commands"),
+    ("commands_vehicle",         "setup_vehicle_commands"),
 ]
 
 _loaded = {}
@@ -128,9 +130,9 @@ class ListaSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="⭐ Staff",        value="staff",        description="Comandi riservati allo staff"),
-            discord.SelectOption(label="🔫 Sceriffo",     value="sceriffo",     description="Comandi dello Sceriffo"),
+            discord.SelectOption(label="🚔 FDO",          value="fdo",          description="Comandi delle Forze dell'Ordine"),
             discord.SelectOption(label="💰 Economia",     value="economia",     description="Banca, fatture, fondo cassa"),
-            discord.SelectOption(label="🤠 Roleplay",     value="roleplay",     description="Azioni RP, bisaccia, turni"),
+            discord.SelectOption(label="🏙️ Roleplay",     value="roleplay",     description="Azioni RP, zaino, turni"),
             discord.SelectOption(label="🚫 Contrabbando", value="contrabbando", description="Raccolta e vendita droga, rapine"),
         ]
         super().__init__(placeholder="Seleziona categoria...", options=options)
@@ -150,34 +152,35 @@ class ListaSelect(discord.ui.Select):
                 "`/esito-bando` — Esito bando",
                 "`/rpon` / `/rpoff` — Attiva/disattiva RP",
                 "`/sondaggiorp` — Crea sondaggio RP",
-                "`/rimuovibisaccia` — Rimuovi bisaccia giocatore",
+                "`/rimuovi-zaino` — Rimuovi zaino giocatore",
                 "`/wipe-pg` — Resetta personaggio",
-                "`/wipe-item` — Svuota tutte le bisacce",
+                "`/wipe-totale` — Resetta TUTTI gli utenti [Owner]",
                 "`/crea-item` — Crea item nell'emporio",
                 "`/eliminaitem` — Elimina item emporio",
                 "`/whitelister` — Esito whitelist/background",
                 "`/status-whitelist` — Stato whitelist",
-                "`/add-fondocassa` — Aggiungi al fondo cassa",
                 "`/saldo-fondocassa` — Visualizza tutti i fondi cassa",
                 "`/daiproprieta` — Registra una proprietà",
                 "`/documento` — Emetti documento d'identità",
                 "`/rimuovi-documento` — Rimuovi documento",
                 "`/setup-background` — Invia pannello background PG",
                 "`/sync` — Sincronizza comandi slash",
-                "`/give-item-deposito` — Aggiungi un item al deposito di una fazione",
             ]
-        elif cat == "sceriffo":
-            embed = discord.Embed(title="🔫 COMANDI SCERIFFO", color=discord.Color.blue())
+        elif cat == "fdo":
+            embed = discord.Embed(title="🚔 COMANDI FDO", color=discord.Color.blue())
             cmds = [
                 "`/ammanetto` — Ammanetta un sospettato",
                 "`/modulo-arresto` — Compila modulo di arresto ufficiale",
-                "`/taglia` — Emetti una taglia su un fuorilegge",
-                "`/controlla-taglia` — Verifica le taglie di un giocatore",
-                "`/paga-taglia` — Paga le taglie sulla tua testa",
+                "`/multa` — Emetti una multa su un sospettato",
+                "`/controlla-multa` — Verifica le multe di un giocatore",
+                "`/paga-multa` — Paga le multe a tuo carico",
                 "`/puliziafedinapenale` — Pulisci la fedina penale",
                 "`/cercapersona` — Cerca nel registro cittadini",
                 "`/mostra-documento` — Visualizza documento di un giocatore",
                 "`/controlla-saldo` — Controlla il saldo di un giocatore",
+                "`/controllatarga` — Controlla la targa di un veicolo",
+                "`/sequestraveicolo` / `/dissequestraveicolo` — Gestisci sequestro veicolo",
+                "`/rimuovilibretto` — Rimuovi un libretto di circolazione",
             ]
         elif cat == "economia":
             embed = discord.Embed(title="💰 COMANDI ECONOMIA", color=discord.Color.green())
@@ -186,57 +189,56 @@ class ListaSelect(discord.ui.Select):
                 "`/paga` — Paga un giocatore in contanti",
                 "`/fattura` — Emetti una fattura",
                 "`/pagafattura` — Paga una fattura",
-                "`/fondocassa` — Visualizza il fondo cassa della tua compagnia",
+                "`/fondocassa` — Visualizza il fondo cassa della tua azienda",
                 "`/deposita-fondocassa` — Deposita nel fondo cassa",
                 "`/preleva-fondocassa` — Preleva dal fondo cassa",
-                "`/tiro-dadi` — Tira i dadi (gioco d'azzardo)",
+                "`/leaderboard` — Classifica dei più ricchi",
+                "`/assicurazione` — Gestisci assicurazione veicolo [Officina]",
+                "`/modificaveicolo` — Registra modifiche veicolo [Officina]",
             ]
         elif cat == "roleplay":
-            embed = discord.Embed(title="🤠 COMANDI ROLEPLAY", color=discord.Color.purple())
+            embed = discord.Embed(title="🏙️ COMANDI ROLEPLAY", color=discord.Color.purple())
             cmds = [
                 "`/portafoglio` — Apri il tuo portafoglio",
                 "`/me` — Azione RP (Fame & Sete calano)",
-                "`/mangia` — Mangia dalla bisaccia",
-                "`/bevi` — Bevi dalla bisaccia",
-                "`/bisaccia [utente]` — Visualizza bisaccia",
-                "`/vendibisaccia` — Vendi la tua bisaccia",
+                "`/mangia` — Mangia dallo zaino",
+                "`/bevi` — Bevi dallo zaino",
+                "`/zaino [utente]` — Visualizza zaino",
+                "`/compra-zaino` — Acquista lo zaino (necessario per usare gli oggetti)",
+                "`/vendi-zaino` — Vendi il contenuto del tuo zaino",
                 "`/dai-item` — Dai un item a un altro giocatore",
-                "`/utilizza-item` — Utilizza un item dalla bisaccia",
-                "`/listino-emporio` — Visualizza il listino dell'emporio",
-                "`/item-sell` — Acquista un item dall'emporio",
+                "`/utilizza-item` — Utilizza un item dallo zaino",
+                "`/negozio` — Visualizza il negozio degli item disponibili",
+                "`/item-sell` — Acquista un item dal negozio",
                 "`/inizio-turno` / `/fine-turno` — Registra turno di lavoro",
-                "`/campeggio` — Monta/smonta accampamento",
+                "`/rifugio` — Monta/smonta rifugio di fortuna",
                 "`/anonimo` — Invia un messaggio anonimo",
                 "`/nascondo` — Nascondi un oggetto in un luogo segreto",
+                "`/recupera-oggetto` — Recupera un oggetto nascosto",
                 "`/lettera` — Invia una lettera privata a un giocatore",
-                "`/sondaggiorp` — Crea un sondaggio roleplay",
                 "`/miafedinapenale` — Visualizza la tua fedina penale",
                 "`/mie-proprieta` — Le tue proprietà registrate",
                 "`/pulisci-arma` — Pulisci un'arma",
                 "`/visualizza-stato-arma` — Visualizza l'usura delle tue armi",
-                "`/depgenerici` — Visualizza il deposito della tua fazione",
-                "`/mettidepfazione` — Deposita un item nel deposito",
             ]
         elif cat == "contrabbando":
             embed = discord.Embed(title="🚫 COMANDI CONTRABBANDO", color=discord.Color(0x2C2C2C))
             cmds = [
-                "`/inizio-raccolta` — Inizia una sessione di raccolta droga",
-                "`/fine-raccolta` — Termina la sessione",
-                "`/inizio-vendita` — Inizia una sessione di vendita droga",
-                "`/fine-vendita` — Termina la sessione di vendita",
-                "`/rapina` — Avvia una rapina nel Far West",
-                "`/inizio-creazione-alcool` — Inizia la creazione di alcool",
-                "`/fine-creazione-alcool` — Termina la creazione di alcool",
-                "`/inizio-distillazione` — Inizia la distillazione",
-                "`/fine-distillazione` — Termina la distillazione",
-                "`/inizio-vendita-moonshine` — Comincia la vendita di moonshine",
-                "`/fine-vendita-moonshine` — Termina la vendita di moonshine",
+                "`/raccolta` — Raccogli una sostanza (in base al tuo ruolo)",
+                "`/inizio-raccolta` / `/fine-raccolta` — Sessione di raccolta droga",
+                "`/inizio-vendita` / `/fine-vendita` — Sessione di vendita droga",
+                "`/rapina` — Avvia una rapina a Los Santos",
+                "`/inizio-creazione-alcool` / `/fine-creazione-alcool` — Alcol clandestino",
+                "`/inizio-distillazione` / `/fine-distillazione` — Distillazione",
+                "`/inizio-vendita-moonshine` / `/fine-vendita-moonshine` — Vendita alcol",
+                "`/inizio-creazione-armi` / `/fine-creazione-armi` — Costruzione armi [Armeria]",
+                "`/smantellaauto` — Smantella un veicolo [SMANTELLATORE]",
             ]
         else:
             return
 
         embed.description = "**Comandi disponibili:**\n\n" + "\n".join(cmds)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Lista Comandi")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Lista Comandi")
         await interaction.response.edit_message(embed=embed, view=ListaView())
 
 
@@ -249,12 +251,12 @@ class ListaView(discord.ui.View):
 @bot.tree.command(name="lista-comandi", description="Visualizza tutti i comandi disponibili")
 async def lista_comandi(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="<:regolamento:1459626703411478560> LISTA COMANDI — RED DEAD REDEMPTION II",
+        title="<:regolamento:1459626703411478560> LISTA COMANDI — WEST COAST RP '93",
         description="Seleziona una categoria dal menu qui sotto.",
-        color=discord.Color(0xDAA520), timestamp=discord.utils.utcnow()
+        color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow()
     )
     embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.set_footer(text="🤠 Red Dead Redemption II RP")
+    embed.set_footer(text="🏙️ West Coast RP '93")
     await interaction.response.send_message(embed=embed, view=ListaView(), ephemeral=True)
 
 
@@ -287,7 +289,7 @@ async def main():
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
-    print("🚀 Avvio Red Dead Redemption II Bot...", flush=True)
+    print("🚀 Avvio West Coast RP '93 Bot...", flush=True)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
