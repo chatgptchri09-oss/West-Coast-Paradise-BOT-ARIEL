@@ -491,7 +491,7 @@ def setup_admin_commands(bot):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True); return
         color = discord.Color.green() if stato == "online" else discord.Color.red()
-        emoji = "🟢" if stato == "online" else "🔴"
+        emoji = "<a:online:1525963385890410741>" if stato == "online" else "<a:offline:1525963229056991254>"
         embed = discord.Embed(
             title=f"{emoji} 𝐒𝐞𝐫𝐯𝐢𝐳𝐢 𝐖𝐡𝐢𝐭𝐞𝐥𝐢𝐬𝐭 — {stato.upper()}",
             color=color, timestamp=discord.utils.utcnow()
