@@ -11,7 +11,7 @@ def has_staff(interaction: discord.Interaction) -> bool:
     return any(r.id == AGENCY_ROLE for r in interaction.user.roles)
 
 
-def setup_property_commands(bot):
+def setup_properties_commands(bot):
     PROPERTY_TYPES = [
         app_commands.Choice(name="🏡 Villa",           value="Villa"),
         app_commands.Choice(name="🏢 Appartamento",    value="Appartamento"),
