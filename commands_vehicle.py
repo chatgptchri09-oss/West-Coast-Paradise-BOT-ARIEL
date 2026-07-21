@@ -6,9 +6,9 @@ import aiosqlite
 DATABASE_NAME = "economy_bot.db"
 LOG_CHANNEL_ID = 1415297578022604850
 VEHICLE_LOG_CHANNEL_ID = 1414759489998946396 
-LFD_ROLE_ID = 1415093546549248040
+LFD_ROLE_ID = 1524525114526269470
 OFFICINA_ROLE_ID = 1415240071216500746
-LOG_CHANNEL_MODIFICHE_ID = 1457772963867922554
+LOG_CHANNEL_MODIFICHE_ID = 1415038985037807746
 
 def has_role(interaction: discord.Interaction, role_id: int) -> bool:
     if not isinstance(interaction.user, discord.Member):
@@ -46,7 +46,6 @@ def setup_vehicle_commands(bot: commands.Bot):
                 await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa}**!", ephemeral=True)
                 return
             
-            # Gestisci sia veicoli vecchi (9 colonne) che nuovi (10 colonne con illegal)
             if len(vehicle) == 10:
                 _, user_id, client_name, client_surname, vehicle_model, plate, insurance, modifications, seized, illegal = vehicle
             else:
@@ -70,7 +69,6 @@ def setup_vehicle_commands(bot: commands.Bot):
             
             await interaction.followup.send(embed=embed, ephemeral=True)
             
-            # LOG CON EMBED
             log_embed = discord.Embed(
                 title="🚗 LOG CONTROLLO TARGA",
                 color=discord.Color.blue()
@@ -125,7 +123,6 @@ def setup_vehicle_commands(bot: commands.Bot):
             action = "aggiunta" if stato == "aggiungi" else "rimossa"
             await interaction.followup.send(f"✅ Assicurazione {action} per il veicolo con targa **{targa}**!", ephemeral=True)
             
-            # LOG CON EMBED
             log_embed = discord.Embed(
                 title=f"📋 ASSICURAZIONE {'AGGIUNTA' if stato == 'aggiungi' else 'RIMOSSA'}",
                 color=discord.Color.green() if stato == "aggiungi" else discord.Color.red()
@@ -170,7 +167,6 @@ def setup_vehicle_commands(bot: commands.Bot):
             
             await interaction.followup.send(f"✅ Modifiche registrate per il veicolo con targa **{targa}**!", ephemeral=True)
             
-            # LOG CON EMBED
             log_embed = discord.Embed(
                 title="🔧 MODIFICA VEICOLO",
                 color=discord.Color.blue()
@@ -205,7 +201,6 @@ def setup_vehicle_commands(bot: commands.Bot):
                     await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa}**!", ephemeral=True)
                     return
                 
-                # Gestisci sia 9 che 10 colonne
                 if len(vehicle) >= 9:
                     _, user_id, client_name, client_surname = vehicle[0:4]
                 else:
@@ -254,7 +249,6 @@ def setup_vehicle_commands(bot: commands.Bot):
                     await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa}**!", ephemeral=True)
                     return
                 
-                # Gestisci sia 9 che 10 colonne
                 if len(vehicle) >= 9:
                     _, user_id, client_name, client_surname = vehicle[0:4]
                 else:
@@ -302,7 +296,6 @@ def setup_vehicle_commands(bot: commands.Bot):
                 if cursor.rowcount > 0:
                     await interaction.followup.send(f"✅ Libretto per il veicolo con targa **{targa}** rimosso!", ephemeral=True)
                     
-                    # LOG CON EMBED
                     log_embed = discord.Embed(
                         title="🗑️ LOG LIBRETTO RIMOSSO",
                         color=discord.Color.red()
