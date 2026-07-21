@@ -5,7 +5,7 @@ import aiosqlite
 from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff
 
 # ID ruolo autorizzato a usare /wipe-totale
-WIPE_TOTALE_ROLE_ID = 1404051860121456701
+WIPE_TOTALE_ROLE_ID = 1414922994723196979
 
 def setup_wipepg_commands(bot: commands.Bot):
 
