@@ -7,59 +7,45 @@ from constants import LOG_CHANNEL_ID, DATABASE_NAME
 
 # ── Costanti ──────────────────────────────────────────────────────────────────
 OLIO_ITEM    = "<:olioarmi:1529039662327398452> • Olio per Armi"
-COTE_ITEM    = "<:cote:1529039996491661352> • Cote"
+COTE_ITEM    = "<:cote:1529039996491661352> • Pietra Affilatrice"
 AVVISI_USURA = {75, 50, 25, 10, 5, 0}
 
-# ── Armi da FUOCO (-5%/24h, -2% per passaggio) ───────────────────────────────
+# ── Armi da FUOCO (-5%/24h, -2% per passaggio) — West Coast RP '93 ───────────
 ARMI_FUOCO = {
-    "<:Revolver:1457468114575822918> • Revolver d'Azzardo",
-    "<:Revolver:1457468114575822918> • Revolver d'Azzardo (M.N.)",
-    "<:Revolver:1457468114575822918> • Revolver Cattleman",
-    "<:Revolver:1457468114575822918> • Revolver Cattleman (M.N.)",
-    "<:Revolver:1457468114575822918> • Revolver a Doppia Azione",
-    "<:Revolver:1457468114575822918> • Revolver a Doppia Azione (M.N.)",
-    "<:Revolver:1457468114575822918> • Revolver Schofield",
-    "<:Revolver:1457468114575822918> • Revolver Schofield (M.N.)",
-    "<:Revolver:1457468114575822918> • Revolver Navy",
-    "<:Revolver:1457468114575822918> • Revolver Navy (M.N.)",
-    "<:Volcanic:1457650683837677653> • Pistola Volcanic",
-    "<:Volcanic:1457650683837677653> • Pistola Volcanic (M.N.)",
-    "<:DoppiettaaCanneMozze:1457657137533550685> • Fucile a Canne Mozze Lisce",
-    "<:DoppiettaaCanneMozze:1457657137533550685> • Fucile a Canne Mozze Lisce (M.N.)",
-    "<:Doppietta:1457655998562041947> • Doppietta a Canne Lisce",
-    "<:Doppietta:1457655998562041947> • Doppietta a Canne Lisce (M.N.)",
-    "<:Doppietta:1457655998562041947> • Fucile a Canna Liscia a Pompa",
-    "<:Doppietta:1457655998562041947> • Fucile a Canna Liscia a Pompa (M.N.)",
-    "<:Doppietta:1457655998562041947> • Fucile a Canna Liscia Semiautomatico",
-    "<:Doppietta:1457655998562041947> • Fucile a Canna Liscia Semiautomatico (M.N.)",
-    "<:Litchfield:1457518211716087961> • Carabina a Ripetizione",
-    "<:Litchfield:1457518211716087961> • Carabina a Ripetizione (M.N.)",
-    "<:Litchfield:1457518211716087961> • Lancaster a Ripetizione",
-    "<:Litchfield:1457518211716087961> • Lancaster a Ripetizione (M.N.)",
-    "<:Springfield:1457642354717622362> • Varmint a Canna Rigata",
-    "<:Springfield:1457642354717622362> • Varmint a Canna Rigata (M.N.)",
-    "<:Springfield:1457642354717622362> • Springfield a Canna Rigata",
-    "<:Springfield:1457642354717622362> • Springfield a Canna Rigata (M.N.)",
-    "<:Springfield:1457642354717622362> • Bolt-Action a Canna Rigata",
-    "<:Springfield:1457642354717622362> • Bolt-Action a Canna Rigata (M.N.)",
+    "🔫 • Pistola",
+    "🔫 • Pistola (M.N.)",
+    "🔫 • Pistola a Tamburo",
+    "🔫 • Pistola a Tamburo (M.N.)",
+    "🔫 • Pistola Automatica",
+    "🔫 • Pistola Automatica (M.N.)",
+    "🔫 • Fucile a Pompa",
+    "🔫 • Fucile a Pompa (M.N.)",
+    "🔫 • Fucile a Canne Mozze",
+    "🔫 • Fucile a Canne Mozze (M.N.)",
+    "🔫 • Fucile da Combattimento",
+    "🔫 • Fucile da Combattimento (M.N.)",
+    "🔫 • Mitra",
+    "🔫 • Mitra (M.N.)",
+    "🔫 • Fucile d'Assalto",
+    "🔫 • Fucile d'Assalto (M.N.)",
+    "🔫 • Fucile di Precisione",
+    "🔫 • Fucile di Precisione (M.N.)",
+    "🔫 • Carabina",
+    "🔫 • Carabina (M.N.)",
 }
 
-# ── Armi da MISCHIA (-2%/24h, -1% per passaggio) ─────────────────────────────
+# ── Armi da MISCHIA (-2%/24h, -1% per passaggio) — West Coast RP '93 ─────────
 ARMI_MISCHIA = {
+    "🔪 • Coltello",
+    "🔪 • Coltello a Serramanico",
+    "⚾ • Mazza da Baseball",
+    "🏏 • Mazza da Cricket",
     "🪓 • Accetta",
-    "🪓 • Accetta da Caccia",
-    "🪓 • Mannaia",
+    "🔧 • Chiave Inglese",
+    "⛓️ • Catena",
+    "🥊 • Tirapugni",
+    "🗡️ • Machete",
     "🔨 • Martello",
-    "🪓 • Tomahawk",
-    "<:Coltello:1457696753892720760> • Coltello",
-    "<:Coltello:1457696753892720760> • Coltello a Lancia",
-    "<:Coltello:1457696753892720760> • Coltello Mandibola",
-    "<:Coltello:1457696753892720760> • Coltello da Lancio",
-    "<:Machete:1457700008244674593> • Machete",
-    "<:FaretraConFreccie:1457707105078214879> • Faretra con Frecce",
-    "<:Arco:1457700407282241671> • Arco",
-    "<:ArcoMigliorato:1457701357342687335> • Arco Migliorato",
-    "📿 • Bolas",
 }
 
 ALL_ARMI = ARMI_FUOCO | ARMI_MISCHIA
@@ -108,7 +94,6 @@ async def _ensure_tables():
                 PRIMARY KEY (user_id, item_name)
             )
         """)
-        # Upgrade sicuro: aggiunge last_decay_ts se la tabella esisteva già
         try:
             await db.execute("ALTER TABLE weapon_durability ADD COLUMN last_decay_ts REAL DEFAULT 0")
         except Exception:
@@ -125,7 +110,6 @@ async def get_usura(user_id: str, item_name: str) -> int:
             return row[0] if row else 100
 
 async def set_usura(user_id: str, item_name: str, valore: int, update_ts: bool = False):
-    """Salva l'usura. Se update_ts=True aggiorna anche last_decay_ts al momento attuale."""
     v  = max(0, min(100, valore))
     ts = time.time() if update_ts else None
     async with aiosqlite.connect(DATABASE_NAME) as db:
@@ -201,7 +185,7 @@ async def _notifica_usura(bot, user_id: str, item_name: str, usura: int):
         titolo = "💀 Arma Distrutta!"
         desc   = (
             f"La tua arma **{item_name}** è completamente consumata ed è stata "
-            f"**rimossa automaticamente** dalla tua bisaccia.\n\n"
+            f"**rimossa automaticamente** dal tuo zaino.\n\n"
             f"Acquistane una nuova dall'emporio."
         )
         color = discord.Color.red()
@@ -227,9 +211,8 @@ async def _notifica_usura(bot, user_id: str, item_name: str, usura: int):
             value="L'arma è in condizioni critiche! Puliscila subito.",
             inline=False
         )
-    embed_dm.set_footer(text="🤠 Red Dead Redemption II — Sistema Usura Armi")
+    embed_dm.set_footer(text="🏙️ West Coast RP '93 — Sistema Usura Armi")
 
-    # ── DM all'utente — tentiamo più volte ───────────────────────────────────
     dm_inviato = False
     for tentativo in range(3):
         try:
@@ -239,12 +222,10 @@ async def _notifica_usura(bot, user_id: str, item_name: str, usura: int):
                 dm_inviato = True
                 break
         except discord.Forbidden:
-            # L'utente ha i DM chiusi — non possiamo fare nulla
             break
         except Exception:
             await asyncio.sleep(1)
 
-    # ── Log nel canale ────────────────────────────────────────────────────────
     try:
         ch = bot.get_channel(LOG_CHANNEL_ID)
         if ch:
@@ -297,12 +278,11 @@ async def task_usura_giornaliera(bot):
     print("🔧 Task usura avviato (controllo ogni ora)", flush=True)
 
     while not bot.is_closed():
-        await asyncio.sleep(3600)  # controlla ogni ora
+        await asyncio.sleep(3600)
         now_ts = time.time()
         print("🔧 Controllo usura armi...", flush=True)
 
         try:
-            # Leggi tutte le righe usura con il loro timestamp
             async with aiosqlite.connect(DATABASE_NAME) as db:
                 db.row_factory = aiosqlite.Row
                 async with db.execute(
@@ -320,7 +300,6 @@ async def task_usura_giornaliera(bot):
                 if not tipo:
                     continue
 
-                # Verifica che l'arma sia ancora nell'inventario
                 async with aiosqlite.connect(DATABASE_NAME) as db:
                     async with db.execute(
                         "SELECT quantity FROM inventory WHERE user_id=? AND item_name=? AND quantity>0",
@@ -330,19 +309,17 @@ async def task_usura_giornaliera(bot):
                 if not inv_row:
                     continue
 
-                # Quante giornate complete sono passate dall'ultimo decay?
                 secondi_passati = now_ts - last_ts
                 giorni_passati  = int(secondi_passati // 86400)
 
                 if giorni_passati < 1:
-                    continue  # Non è ancora passato un giorno
+                    continue
 
                 calo_totale = _calo_24h(tipo) * giorni_passati
                 nuova_usura = max(0, usura_cur - calo_totale)
 
                 await set_usura(uid, item, nuova_usura, update_ts=True)
 
-                # Notifica per ogni soglia attraversata
                 for soglia in sorted(AVVISI_USURA, reverse=True):
                     if usura_cur > soglia >= nuova_usura:
                         await _notifica_usura(bot, uid, item, soglia)
@@ -370,7 +347,7 @@ def setup_usura_commands(bot):
                 scelte.append(app_commands.Choice(name=label, value=a["item_name"]))
         return [c for c in scelte if current.lower() in c.name.lower()][:25]
 
-    @bot.tree.command(name="pulisci-arma", description="Pulisci un'arma dalla bisaccia per ripristinare l'usura")
+    @bot.tree.command(name="pulisci-arma", description="Pulisci un'arma dallo zaino per ripristinare l'usura")
     @app_commands.describe(arma="L'arma da pulire")
     @app_commands.autocomplete(arma=_ac_pulisci)
     async def pulisci_arma(interaction: discord.Interaction, arma: str):
@@ -387,7 +364,7 @@ def setup_usura_commands(bot):
             ) as c:
                 row = await c.fetchone()
         if not row or row[0] < 1:
-            await interaction.followup.send(f"❌ Non hai **{arma}** nella bisaccia.", ephemeral=True); return
+            await interaction.followup.send(f"❌ Non hai **{arma}** nello zaino.", ephemeral=True); return
 
         usura_attuale = await get_usura(uid, arma)
         if usura_attuale >= 100:
@@ -422,7 +399,7 @@ def setup_usura_commands(bot):
         embed.add_field(name="⚙️ Prima",      value=_barra(usura_attuale), inline=True)
         embed.add_field(name="✅ Dopo",        value=_barra(100),           inline=True)
         embed.add_field(name="🧴 Utilizzato", value=item_p,                inline=False)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Sistema Usura")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Sistema Usura")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
         try:
@@ -464,7 +441,7 @@ def setup_usura_commands(bot):
             await interaction.response.send_message("❌ Errore interno. Riprova.", ephemeral=True); return
 
         if not armi_nomi:
-            await interaction.response.send_message("❌ Non hai armi nella bisaccia.", ephemeral=True); return
+            await interaction.response.send_message("❌ Non hai armi nello zaino.", ephemeral=True); return
 
         armi_usura = []
         for nome in armi_nomi:
@@ -488,7 +465,7 @@ def setup_usura_commands(bot):
         def _build_embed(pagina: int) -> discord.Embed:
             embed = discord.Embed(
                 title="🔫 𝐒𝐭𝐚𝐭𝐨 𝐀𝐫𝐦𝐢",
-                color=discord.Color(0x8B4513),
+                color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
@@ -507,7 +484,7 @@ def setup_usura_commands(bot):
                     ),
                     inline=False
                 )
-            embed.set_footer(text=f"🤠 Red Dead Redemption II — Usura | Pagina {pagina+1}/{tot_pag}")
+            embed.set_footer(text=f"🏙️ West Coast RP '93 — Usura | Pagina {pagina+1}/{tot_pag}")
             return embed
 
         class UsuraView(discord.ui.View):
