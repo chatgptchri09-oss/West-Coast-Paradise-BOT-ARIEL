@@ -529,44 +529,7 @@ def setup_admin_commands(bot):
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
-    # ── /daiproprieta ─────────────────────────────────────────────────────────
-    @bot.tree.command(name="daiproprieta", description="[Agenzia] Registra una proprietà per un cittadino")
-    @app_commands.describe(cittadino="Il proprietario", nome="Nome proprietà", tipo="Tipo", luogo="Ubicazione")
-    @app_commands.choices(tipo=[
-        app_commands.Choice(name="🏠 Appartamento",  value="Appartamento"),
-        app_commands.Choice(name="🏡 Villa",         value="Villa"),
-        app_commands.Choice(name="🏢 Ufficio",       value="Ufficio"),
-        app_commands.Choice(name="🏪 Negozio",       value="Negozio"),
-        app_commands.Choice(name="🔧 Garage",        value="Garage"),
-        app_commands.Choice(name="🏭 Magazzino",     value="Magazzino"),
-        app_commands.Choice(name="🎰 Locale",        value="Locale"),
-        app_commands.Choice(name="🏕️ Altro",         value="Altro"),
-    ])
-    async def dai_proprieta(interaction: discord.Interaction, cittadino: discord.Member,
-                            nome: str, tipo: str, luogo: str):
-        if not _has_role(interaction, AGENZIA_ROLE_ID):
-            await interaction.response.send_message(
-                "❌ Solo l'**Agenzia Immobiliare** può registrare proprietà.", ephemeral=True
-            ); return
-        await database.add_property(str(cittadino.id), nome, tipo, luogo)
-        embed = discord.Embed(title="🏠 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐭𝐚", color=discord.Color(0x00C853), timestamp=discord.utils.utcnow())
-        embed.set_thumbnail(url=cittadino.display_avatar.url)
-        embed.add_field(name="👤 Proprietario", value=cittadino.mention,        inline=True)
-        embed.add_field(name="🏠 Nome",         value=nome,                     inline=True)
-        embed.add_field(name="🏷️ Tipo",         value=tipo,                     inline=True)
-        embed.add_field(name="📍 Ubicazione",   value=luogo,                    inline=False)
-        embed.add_field(name="👮 Assegnato da", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🏙️ West Coast RP — Property")
-        await interaction.response.send_message(embed=embed)
-        await _log(bot, embed)
-        try:
-            dm = discord.Embed(
-                title="🏠 𝐍𝐮𝐨𝐯𝐚 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à!",
-                description=f"Sei proprietario di **{nome}** ({tipo}) a **{luogo}**!",
-                color=discord.Color(0x00C853)
-            )
-            await cittadino.send(embed=dm)
-        except Exception: pass
+    
 
     # ── /setup-background ─────────────────────────────────────────────────────
     @bot.tree.command(name="setup-background", description="[Developer] Invia il pannello Background PG nel canale")
