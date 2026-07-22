@@ -134,11 +134,20 @@ class PortafoglioSelect(discord.ui.Select):
                 embed.description = "*Non hai ricevuto nessuna fattura.*"
             else:
                 for inv in invoices:
-                    desc_pulita = inv["description"].rsplit(" | ", 1)[0] if " | " in inv["description"] else inv["description"]
+                    # La descrizione salva l'azienda come " | NomeAzienda" in fondo (vedi commands_invoice.py)
+                    if " | " in inv["description"]:
+                        desc_pulita, azienda = inv["description"].rsplit(" | ", 1)
+                    else:
+                        desc_pulita, azienda = inv["description"], "—"
                     stato = "✅ Pagata" if inv["paid"] else "⏳ In sospeso"
                     embed.add_field(
                         name=f"#{inv['id']} — ${inv['amount']:,} — {stato}",
-                        value=f"📋 {desc_pulita}\n📅 {inv['created_at']}",
+                        value=(
+                            f"📋 **Motivo:** {desc_pulita}\n"
+                            f"🏢 **Azienda:** {azienda}\n"
+                            f"👤 **Rilasciata da:** <@{inv['from_user']}>\n"
+                            f"📅 **Data:** {inv['created_at']}"
+                        ),
                         inline=False
                     )
             embed.set_footer(text="🏙️ West Coast RP '93 — Storico Fatture (ultime 10)")
