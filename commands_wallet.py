@@ -47,7 +47,7 @@ class PortafoglioSelect(discord.ui.Select):
         if val == "documento":
             doc = await database.get_document(user_id)
             embed = discord.Embed(
-                title="📜 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
+                title="<a:passaporto:1525964064134664372> 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -69,7 +69,7 @@ class PortafoglioSelect(discord.ui.Select):
             items = await database.get_inventory(user_id)
             user  = await database.get_user(user_id)
             embed = discord.Embed(
-                title="🎒 𝐈𝐥 𝐭𝐮𝐨 𝐙𝐚𝐢𝐧𝐨",
+                title="<a:scatola:1529614295246045264> 𝐈𝐥 𝐭𝐮𝐨 𝐙𝐚𝐢𝐧𝐨",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -126,7 +126,7 @@ class PortafoglioSelect(discord.ui.Select):
         elif val == "fatture":
             invoices = await database.get_invoices_history_by_user(user_id, limit=10)
             embed = discord.Embed(
-                title="📄 𝐋𝐞 𝐭𝐮𝐞 𝐅𝐚𝐭𝐭𝐮𝐫𝐞",
+                title="<a:fattura:1529614679436034158> 𝐋𝐞 𝐭𝐮𝐞 𝐅𝐚𝐭𝐭𝐮𝐫𝐞",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -156,7 +156,7 @@ class PortafoglioSelect(discord.ui.Select):
         elif val == "fedina":
             records = await database.get_criminal_records(user_id)
             embed = discord.Embed(
-                title="⚖️ 𝐅𝐞𝐝𝐢𝐧𝐚 𝐏𝐞𝐧𝐚𝐥𝐞",
+                title="<a:file:1529617416403947760> 𝐅𝐞𝐝𝐢𝐧𝐚 𝐏𝐞𝐧𝐚𝐥𝐞",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -193,7 +193,7 @@ class BancaModal(discord.ui.Modal):
 
     def __init__(self, action: str):
         self.action = action
-        title = "💸 Richiesta Prelievo" if action == "preleva" else "🏦 Richiesta Deposito"
+        title = "<a:money:1529617936707354644> Richiesta Prelievo" if action == "preleva" else "🏦 Richiesta Deposito"
         super().__init__(title=title)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -283,7 +283,7 @@ class ConfermaOperazioneView(discord.ui.View):
                 await interaction.response.edit_message(content="❌ Fondi insufficienti — operazione annullata.", view=None)
                 return
             await database.update_balance(self.user_id, cash=user["cash"]+self.amount, bank=user["bank"]-self.amount)
-            esito = f"💵 Hai prelevato **${self.amount:,}**. I contanti sono stati aggiunti al tuo portafoglio."
+            esito = f"<a:money:1529617936707354644> Hai prelevato **${self.amount:,}**. I contanti sono stati aggiunti al tuo portafoglio."
         else:
             if self.amount > user["cash"]:
                 await interaction.response.edit_message(content="❌ Contanti insufficienti — operazione annullata.", view=None)
@@ -419,7 +419,7 @@ def setup_wallet_commands(bot):
         await database.update_balance(str(giocatore.id),        cash=destinatario["cash"] + importo)
 
         embed = discord.Embed(
-            title="💸 𝐏𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨 𝐄𝐟𝐟𝐞𝐭𝐭𝐮𝐚𝐭𝐨",
+            title="<a:money:1529617936707354644> 𝐏𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨 𝐄𝐟𝐟𝐞𝐭𝐭𝐮𝐚𝐭𝐨",
             color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
@@ -433,7 +433,7 @@ def setup_wallet_commands(bot):
 
         try:
             dm = discord.Embed(
-                title="💵 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧 𝐩𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨!",
+                title="<a:money:1529617936707354644> 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧 𝐩𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨!",
                 description=(
                     f"**{interaction.user.display_name}** ti ha pagato **${importo:,}** in contanti."
                     + (f"\n📋 **Causale:** {causale}" if causale else "")
