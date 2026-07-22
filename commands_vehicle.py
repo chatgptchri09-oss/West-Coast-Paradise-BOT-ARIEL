@@ -49,6 +49,11 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         placeholder="Es: Bravado Buffalo",
         required=True, max_length=100
     )
+    colore = discord.ui.TextInput(
+        label="Colore veicolo",
+        placeholder="Es: Nero opaco",
+        required=True, max_length=50
+    )
     targa = discord.ui.TextInput(
         label="Targa",
         placeholder="Es: WC93-1234",
@@ -85,7 +90,8 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         marca_veicolo  = parti_veicolo[0] if parti_veicolo else self.marca_modello.value
         modello_veicolo = parti_veicolo[1] if len(parti_veicolo) > 1 else ""
 
-        targa_val = self.targa.value.strip().upper()
+        colore_val = self.colore.value.strip()
+        targa_val  = self.targa.value.strip().upper()
 
         # Controllo targa duplicata
         esistente = await database.get_vehicle_by_plate(targa_val)
@@ -107,7 +113,8 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
             price=prezzo_val,
             vehicle_type=self.tipo,
             photo_url=self.foto.url,
-            registered_by=str(interaction.user.id)
+            registered_by=str(interaction.user.id),
+            vehicle_color=colore_val
         )
 
         emoji_tipo  = "🚗" if self.tipo == "personale" else "🏢"
@@ -122,6 +129,7 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         embed.set_thumbnail(url=self.cliente.display_avatar.url)
         embed.add_field(name="👤 Proprietario", value=f"{nome_cliente} {cognome_cliente}\n{self.cliente.mention}", inline=True)
         embed.add_field(name="🚙 Veicolo", value=f"{marca_veicolo} {modello_veicolo}".strip(), inline=True)
+        embed.add_field(name="🎨 Colore", value=colore_val, inline=True)
         embed.add_field(name="🔖 Targa", value=f"`{targa_val}`", inline=True)
         embed.add_field(name="💰 Prezzo di vendita", value=f"${prezzo_val:,}", inline=True)
         embed.add_field(name="🏷️ Tipo", value=label_tipo, inline=True)
@@ -142,7 +150,7 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
             dm = discord.Embed(
                 title="🚗 Hai ricevuto un nuovo veicolo!",
                 description=(
-                    f"Il Concessionario ti ha registrato un **{marca_veicolo} {modello_veicolo}**.\n\n"
+                    f"Il Concessionario ti ha registrato un **{colore_val} {marca_veicolo} {modello_veicolo}**.\n\n"
                     f"🔖 **Targa:** `{targa_val}`\n"
                     f"💰 **Prezzo:** ${prezzo_val:,}\n"
                     f"🏷️ **Tipo:** {label_tipo}\n\n"
@@ -171,6 +179,69 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
                 await ch.send(embed=log)
         except Exception:
             pass
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  VIEW — Bottoni sotto l'embed di /controllatarga
+# ══════════════════════════════════════════════════════════════════════════════
+class ControlloTargaView(discord.ui.View):
+    def __init__(self, target_user_id: str, target_display: str):
+        super().__init__(timeout=180)
+        self.target_user_id = target_user_id
+        self.target_display = target_display
+
+    @discord.ui.button(label="Visiona documento", style=discord.ButtonStyle.primary, emoji="📜")
+    async def visiona_documento(self, interaction: discord.Interaction, button: discord.ui.Button):
+        doc = await database.get_document(self.target_user_id)
+        embed = discord.Embed(
+            title=f"📜 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 — {self.target_display}",
+            color=discord.Color(0x1E90FF),
+            timestamp=discord.utils.utcnow()
+        )
+        if not doc:
+            embed.description = "❌ *Questa persona non possiede nessun documento registrato.*"
+        else:
+            embed.add_field(name="👤 Nome",             value=doc["nome"],           inline=True)
+            embed.add_field(name="👥 Cognome",          value=doc["cognome"],        inline=True)
+            embed.add_field(name="🎂 Età",              value=str(doc["eta"]),       inline=True)
+            embed.add_field(name="⚧ Sesso",             value=doc["sesso"],          inline=True)
+            embed.add_field(name="📍 Luogo di nascita", value=doc["luogo_nascita"],  inline=True)
+            embed.add_field(name="📅 Emesso il",        value=doc["created_at"],     inline=True)
+            if doc.get("foto_url"):
+                embed.set_thumbnail(url=doc["foto_url"])
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @discord.ui.button(label="Visiona precedenti", style=discord.ButtonStyle.secondary, emoji="⚖️")
+    async def visiona_precedenti(self, interaction: discord.Interaction, button: discord.ui.Button):
+        fines   = await database.get_fines_history(self.target_user_id)
+        arrests = await database.get_arrests(self.target_user_id)
+
+        embed = discord.Embed(
+            title=f"⚖️ 𝐏𝐫𝐞𝐜𝐞𝐝𝐞𝐧𝐭𝐢 — {self.target_display}",
+            color=discord.Color(0x8B0000),
+            timestamp=discord.utils.utcnow()
+        )
+
+        if not fines:
+            embed.add_field(name="🚔 Multe", value="✅ Nessuna multa registrata.", inline=False)
+        else:
+            righe = []
+            for f in fines[:10]:
+                stato = "✅ Pagata" if f["paid"] else "⏳ Non pagata"
+                righe.append(f"**#{f['id']}** — ${f['amount']:,} — {stato}\n📋 {f['reason']}\n📅 {f['created_at']}")
+            embed.add_field(name=f"🚔 Multe ({len(fines)})", value="\n\n".join(righe)[:1024], inline=False)
+
+        if not arrests:
+            embed.add_field(name="⛓️ Arresti", value="✅ Nessun arresto registrato.", inline=False)
+        else:
+            righe = []
+            for a in arrests[:10]:
+                righe.append(f"📋 {a['reason']}\n⏱️ {a['duration']} — 👮 {a['officer']}\n📅 {a['created_at']}")
+            embed.add_field(name=f"⛓️ Arresti ({len(arrests)})", value="\n\n".join(righe)[:1024], inline=False)
+
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 def setup_vehicle_commands(bot: commands.Bot):
@@ -219,12 +290,15 @@ def setup_vehicle_commands(bot: commands.Bot):
                 await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa}**!", ephemeral=True)
                 return
 
+            proprietario_label = f"{vehicle['client_name']} {vehicle['client_surname']}".strip()
+
             embed = discord.Embed(
                 title=f"🚗 CONTROLLO TARGA: {vehicle['plate']}",
                 color=discord.Color.blue()
             )
-            embed.add_field(name="👤 Proprietario", value=f"{vehicle['client_name']} {vehicle['client_surname']} (<@{vehicle['user_id']}>)", inline=False)
+            embed.add_field(name="👤 Proprietario", value=f"{proprietario_label} (<@{vehicle['user_id']}>)", inline=False)
             embed.add_field(name="🚙 Veicolo", value=f"{vehicle.get('vehicle_brand','')} {vehicle['vehicle_model']}".strip(), inline=True)
+            embed.add_field(name="🎨 Colore", value=vehicle.get("vehicle_color") or "N/D", inline=True)
             embed.add_field(name="🔖 Targa", value=vehicle['plate'], inline=True)
             embed.add_field(name="🏷️ Tipo", value="Aziendale" if vehicle.get("vehicle_type") == "aziendale" else "Personale", inline=True)
             embed.add_field(name="📋 Assicurazione", value="✅ Presente" if vehicle['insurance'] else "❌ Assente", inline=False)
@@ -237,12 +311,13 @@ def setup_vehicle_commands(bot: commands.Bot):
             if vehicle.get("photo_url"):
                 embed.set_thumbnail(url=vehicle["photo_url"])
 
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            view = ControlloTargaView(vehicle["user_id"], proprietario_label or f"<@{vehicle['user_id']}>")
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
             log_embed = discord.Embed(title="🚗 LOG CONTROLLO TARGA", color=discord.Color.blue())
             log_embed.add_field(name="👮 Controllato da", value=interaction.user.mention, inline=True)
             log_embed.add_field(name="🔖 Targa", value=vehicle['plate'], inline=True)
-            log_embed.add_field(name="👤 Proprietario", value=f"{vehicle['client_name']} {vehicle['client_surname']} (<@{vehicle['user_id']}>)", inline=False)
+            log_embed.add_field(name="👤 Proprietario", value=f"{proprietario_label} (<@{vehicle['user_id']}>)", inline=False)
             log_embed.timestamp = discord.utils.utcnow()
             await log_command(bot, LOG_CHANNEL_ID, embed=log_embed)
         except Exception as e:
