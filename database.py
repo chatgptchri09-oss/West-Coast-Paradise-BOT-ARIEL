@@ -116,6 +116,7 @@ async def init_db():
                 client_surname  TEXT,
                 vehicle_brand   TEXT,
                 vehicle_model   TEXT,
+                vehicle_color   TEXT,
                 plate           TEXT UNIQUE,
                 price           INTEGER DEFAULT 0,
                 vehicle_type    TEXT DEFAULT 'personale',
@@ -138,6 +139,7 @@ async def init_db():
             "ALTER TABLE shop_items ADD COLUMN required_role INTEGER DEFAULT NULL",
             "ALTER TABLE weapon_durability ADD COLUMN last_decay_ts REAL DEFAULT 0",
             "ALTER TABLE vehicle_registrations ADD COLUMN vehicle_brand TEXT",
+            "ALTER TABLE vehicle_registrations ADD COLUMN vehicle_color TEXT",
             "ALTER TABLE vehicle_registrations ADD COLUMN price INTEGER DEFAULT 0",
             "ALTER TABLE vehicle_registrations ADD COLUMN vehicle_type TEXT DEFAULT 'personale'",
             "ALTER TABLE vehicle_registrations ADD COLUMN photo_url TEXT",
@@ -281,6 +283,13 @@ async def get_fines(user_id: str) -> list:
     async with aiosqlite.connect(DATABASE_NAME) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM fines WHERE user_id=? AND paid=0", (user_id,)) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+async def get_fines_history(user_id: str) -> list:
+    """Tutte le multe (pagate e non), le più recenti prima."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM fines WHERE user_id=? ORDER BY id DESC", (user_id,)) as c:
             return [dict(r) for r in await c.fetchall()]
 
 async def pay_fine(fine_id: int):
@@ -427,16 +436,16 @@ async def get_invoices_history_by_user(user_id: str, limit: int = 10) -> list:
 async def add_vehicle(user_id: str, client_name: str, client_surname: str,
                       vehicle_brand: str, vehicle_model: str, plate: str,
                       price: int, vehicle_type: str, photo_url: str,
-                      registered_by: str) -> int:
+                      registered_by: str, vehicle_color: str = "") -> int:
     from datetime import datetime
     async with aiosqlite.connect(DATABASE_NAME) as db:
         c = await db.execute("""
             INSERT INTO vehicle_registrations
-                (user_id, client_name, client_surname, vehicle_brand, vehicle_model,
+                (user_id, client_name, client_surname, vehicle_brand, vehicle_model, vehicle_color,
                  plate, price, vehicle_type, photo_url, insurance, modifications,
                  seized, illegal, registered_by, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,0,'/////',0,0,?,?)
-        """, (user_id, client_name, client_surname, vehicle_brand, vehicle_model,
+            VALUES (?,?,?,?,?,?,?,?,?,?,0,'/////',0,0,?,?)
+        """, (user_id, client_name, client_surname, vehicle_brand, vehicle_model, vehicle_color,
               plate, price, vehicle_type, photo_url, registered_by,
               datetime.utcnow().strftime("%d/%m/%Y %H:%M")))
         await db.commit()
@@ -485,6 +494,14 @@ async def add_arrest(user_id: str, reason: str, duration: str, officer: str):
             (user_id, reason, duration, officer, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
         )
         await db.commit()
+
+async def get_arrests(user_id: str) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM arrests WHERE user_id=? ORDER BY id DESC", (user_id,)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
 
 
 # ── TURNI ATTIVI ──────────────────────────────────────────────────────────────
