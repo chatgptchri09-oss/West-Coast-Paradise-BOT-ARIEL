@@ -8,7 +8,7 @@ from constants import (
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PORTAFOGLIO — Select Menu con Documento, Zaino, Proprietà (NO SOLDI)
+#  PORTAFOGLIO — Select Menu con Documento, Zaino, Proprietà, Libretti, Fatture
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _hunger_bar(v: int) -> str:
@@ -26,6 +26,10 @@ class PortafoglioSelect(discord.ui.Select):
                                  description="Contenuto del tuo zaino e stato fisico"),
             discord.SelectOption(label="🏡 Proprietà", value="proprieta",
                                  description="Le tue proprietà a Los Santos"),
+            discord.SelectOption(label="🚗 Libretti veicoli", value="libretti",
+                                 description="I veicoli registrati a tuo nome"),
+            discord.SelectOption(label="📄 Fatture", value="fatture",
+                                 description="Storico delle tue fatture ricevute"),
             discord.SelectOption(label="⚖️ Fedina Penale", value="fedina",
                                  description="I tuoi precedenti con la legge"),
         ]
@@ -98,6 +102,48 @@ class PortafoglioSelect(discord.ui.Select):
             embed.set_footer(text="🏙️ West Coast RP '93 — Proprietà")
             await interaction.response.edit_message(embed=embed, view=self.view)
 
+        elif val == "libretti":
+            vehicles = await database.get_vehicles_by_user(user_id)
+            embed = discord.Embed(
+                title="🚗 𝐈 𝐭𝐮𝐨𝐢 𝐋𝐢𝐛𝐫𝐞𝐭𝐭𝐢",
+                color=discord.Color(0x1E90FF),
+                timestamp=discord.utils.utcnow()
+            )
+            if not vehicles:
+                embed.description = "*Non hai nessun veicolo registrato a tuo nome.*"
+            else:
+                for v in vehicles[:10]:
+                    tipo_label = "🏢 Aziendale" if v.get("vehicle_type") == "aziendale" else "🚗 Personale"
+                    stato = "⚠️ Sequestrato" if v.get("seized") else "✅ Regolare"
+                    embed.add_field(
+                        name=f"{v.get('vehicle_brand','')} {v['vehicle_model']} — `{v['plate']}`".strip(),
+                        value=f"{tipo_label} • {stato}\n💰 ${v.get('price', 0):,}",
+                        inline=False
+                    )
+            embed.set_footer(text="🏙️ West Coast RP '93 — Libretti Veicoli")
+            await interaction.response.edit_message(embed=embed, view=self.view)
+
+        elif val == "fatture":
+            invoices = await database.get_invoices_history_by_user(user_id, limit=10)
+            embed = discord.Embed(
+                title="📄 𝐋𝐞 𝐭𝐮𝐞 𝐅𝐚𝐭𝐭𝐮𝐫𝐞",
+                color=discord.Color(0x1E90FF),
+                timestamp=discord.utils.utcnow()
+            )
+            if not invoices:
+                embed.description = "*Non hai ricevuto nessuna fattura.*"
+            else:
+                for inv in invoices:
+                    desc_pulita = inv["description"].rsplit(" | ", 1)[0] if " | " in inv["description"] else inv["description"]
+                    stato = "✅ Pagata" if inv["paid"] else "⏳ In sospeso"
+                    embed.add_field(
+                        name=f"#{inv['id']} — ${inv['amount']:,} — {stato}",
+                        value=f"📋 {desc_pulita}\n📅 {inv['created_at']}",
+                        inline=False
+                    )
+            embed.set_footer(text="🏙️ West Coast RP '93 — Storico Fatture (ultime 10)")
+            await interaction.response.edit_message(embed=embed, view=self.view)
+
         elif val == "fedina":
             records = await database.get_criminal_records(user_id)
             embed = discord.Embed(
@@ -163,9 +209,13 @@ class BancaModal(discord.ui.Modal):
             )
             return
 
+        if interaction.guild is None:
+            await interaction.response.send_message("❌ Questo comando funziona solo nel server.", ephemeral=True)
+            return
+
         bank_ch = interaction.guild.get_channel(BANK_CHANNEL_ID)
         if bank_ch is None:
-            await interaction.response.send_message("❌ Canale banca non trovato.", ephemeral=True)
+            await interaction.response.send_message("❌ Canale banca non trovato. Contatta lo Staff.", ephemeral=True)
             return
 
         label = "Prelievo" if self.action == "preleva" else "Deposito"
@@ -183,11 +233,18 @@ class BancaModal(discord.ui.Modal):
         embed.set_footer(text="🏙️ West Coast RP '93 — Banca | Solo il Banchiere può approvare")
 
         view = ConfermaOperazioneView(str(interaction.user.id), amount, self.action)
-        await bank_ch.send(
-            content=f"<@&{BANKER_ROLE_ID}> — Nuova richiesta da {interaction.user.mention}",
-            embed=embed,
-            view=view
-        )
+        try:
+            await bank_ch.send(
+                content=f"<@&{BANCHIERE_ROLE_ID}> — Nuova richiesta da {interaction.user.mention}",
+                embed=embed,
+                view=view
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ Il bot non ha i permessi per scrivere nel canale banca. Contatta lo Staff.", ephemeral=True
+            )
+            return
+
         await interaction.response.send_message(
             f"✅ Richiesta di **{label.lower()}** di **${amount:,}** inviata al Banchiere. Riceverai una notifica in DM.",
             ephemeral=True
@@ -204,7 +261,7 @@ class ConfermaOperazioneView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not isinstance(interaction.user, discord.Member):
             return False
-        if not any(r.id == BANKER_ROLE_ID for r in interaction.user.roles):
+        if not any(r.id == BANCHIERE_ROLE_ID for r in interaction.user.roles):
             await interaction.response.send_message("❌ Solo il **Banchiere** può gestire questa richiesta.", ephemeral=True)
             return False
         return True
