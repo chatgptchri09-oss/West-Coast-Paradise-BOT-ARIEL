@@ -8,6 +8,202 @@ RICERCATI_CHANNEL_ID = 1525157991123390475   # ⚠️ DA AGGIORNARE con il nuovo
 CITTADINI_ROLE_ID    = 1414752091607535727   # ⚠️ DA AGGIORNARE con il nuovo ID ruolo cittadini
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  MODAL — Modulo Multa
+# ══════════════════════════════════════════════════════════════════════════════
+class MultaModal(discord.ui.Modal, title="🚔 𝐌𝐨𝐝𝐮𝐥𝐨 𝐝𝐢 𝐌𝐮𝐥𝐭𝐚"):
+    luogo = discord.ui.TextInput(
+        label="Luogo",
+        placeholder="Es: Vinewood Blvd",
+        required=True, max_length=100
+    )
+    nome_cognome = discord.ui.TextInput(
+        label="Nome e Cognome multato",
+        placeholder="Es: John Smith",
+        required=True, max_length=100
+    )
+    indirizzo = discord.ui.TextInput(
+        label="Indirizzo abitazione",
+        placeholder="Es: Grove Street 12",
+        required=True, max_length=100
+    )
+    marca_modello = discord.ui.TextInput(
+        label="Marca e Modello veicolo",
+        placeholder="Es: Bravado Buffalo (lascia vuoto se nessuno)",
+        required=False, max_length=100
+    )
+    violazione = discord.ui.TextInput(
+        label="Violazione",
+        style=discord.TextStyle.paragraph,
+        placeholder="Descrivi la violazione commessa...",
+        required=True, max_length=500
+    )
+
+    def __init__(self, bot, sospettato: discord.Member, importo: int, foto: discord.Attachment = None):
+        super().__init__()
+        self.bot        = bot
+        self.sospettato = sospettato
+        self.importo    = importo
+        self.foto       = foto
+
+    async def on_submit(self, interaction: discord.Interaction):
+        now = discord.utils.utcnow()
+        agente = interaction.user
+
+        await database.add_fine(
+            str(self.sospettato.id), self.importo, self.violazione.value, agente.display_name
+        )
+
+        embed = discord.Embed(
+            title="🚔 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
+            color=discord.Color(0x1E90FF),
+            timestamp=now
+        )
+        embed.set_thumbnail(url=self.sospettato.display_avatar.url)
+        embed.add_field(name="🕐 Data e Orario",       value=discord.utils.format_dt(now, style='F'), inline=False)
+        embed.add_field(name="📍 Luogo",               value=self.luogo.value,                        inline=True)
+        embed.add_field(name="🧑 Multato",             value=self.nome_cognome.value,                 inline=True)
+        embed.add_field(name="🏠 Indirizzo",           value=self.indirizzo.value,                    inline=False)
+        if self.marca_modello.value:
+            embed.add_field(name="🚗 Veicolo",         value=self.marca_modello.value,                inline=False)
+        embed.add_field(name="📋 Violazione",          value=self.violazione.value,                   inline=False)
+        embed.add_field(name="👮 Agente",              value=agente.mention,                          inline=True)
+        embed.add_field(name="💰 Multa",               value=f"${self.importo:,}",                    inline=True)
+        embed.add_field(name="🎯 Tag Discord",         value=self.sospettato.mention,                 inline=True)
+        if self.foto and self.foto.content_type and self.foto.content_type.startswith("image/"):
+            embed.set_image(url=self.foto.url)
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
+        await interaction.response.send_message(embed=embed)
+
+        # ── Annuncio nel canale ricercati ─────────────────────────────────────
+        try:
+            ricercati_ch = self.bot.get_channel(RICERCATI_CHANNEL_ID)
+            if ricercati_ch:
+                manifesto = discord.Embed(
+                    title="🔴 𝐑𝐈𝐂𝐄𝐑𝐂𝐀𝐓𝐎 — 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
+                    color=discord.Color.red(),
+                    timestamp=now
+                )
+                manifesto.set_thumbnail(url=self.sospettato.display_avatar.url)
+                manifesto.add_field(name="🧑 Nome",      value=self.nome_cognome.value,   inline=True)
+                manifesto.add_field(name="💰 Multa",     value=f"${self.importo:,}",      inline=True)
+                manifesto.add_field(name="📋 Reato",     value=self.violazione.value,     inline=False)
+                manifesto.add_field(name="👮 Emessa da", value=agente.mention,            inline=True)
+                if self.foto and self.foto.content_type and self.foto.content_type.startswith("image/"):
+                    manifesto.set_image(url=self.foto.url)
+                manifesto.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
+                await ricercati_ch.send(content=f"<@&{CITTADINI_ROLE_ID}>", embed=manifesto)
+        except Exception:
+            pass
+
+        # ── DM al sospettato ──────────────────────────────────────────────────
+        try:
+            await self.sospettato.send(embed=discord.Embed(
+                title="🚔 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧𝐚 𝐦𝐮𝐥𝐭𝐚!",
+                description=(
+                    f"L'agente **{agente.display_name}** ti ha comminato una multa "
+                    f"di **${self.importo:,}** a **{self.luogo.value}**.\n**Violazione:** {self.violazione.value}"
+                ),
+                color=discord.Color.red()
+            ))
+        except Exception:
+            pass
+
+        # ── Log ───────────────────────────────────────────────────────────────
+        try:
+            ch = self.bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                await ch.send(embed=embed)
+        except Exception:
+            pass
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MODAL — Modulo Arresto
+# ══════════════════════════════════════════════════════════════════════════════
+class ArrestoModal(discord.ui.Modal, title="⛓️ 𝐌𝐨𝐝𝐮𝐥𝐨 𝐝𝐢 𝐀𝐫𝐫𝐞𝐬𝐭𝐨"):
+    luogo = discord.ui.TextInput(
+        label="Luogo",
+        placeholder="Es: Vinewood Blvd",
+        required=True, max_length=100
+    )
+    nome_cognome = discord.ui.TextInput(
+        label="Nome e Cognome arrestato",
+        placeholder="Es: John Smith",
+        required=True, max_length=100
+    )
+    indirizzo = discord.ui.TextInput(
+        label="Indirizzo abitazione",
+        placeholder="Es: Grove Street 12",
+        required=True, max_length=100
+    )
+    reato = discord.ui.TextInput(
+        label="Reato / Motivo dell'arresto",
+        style=discord.TextStyle.paragraph,
+        placeholder="Descrivi il reato commesso...",
+        required=True, max_length=500
+    )
+    durata = discord.ui.TextInput(
+        label="Durata pena",
+        placeholder="Es: 10 minuti di prigione",
+        required=True, max_length=50
+    )
+
+    def __init__(self, bot, sospettato: discord.Member, foto: discord.Attachment = None):
+        super().__init__()
+        self.bot        = bot
+        self.sospettato = sospettato
+        self.foto       = foto
+
+    async def on_submit(self, interaction: discord.Interaction):
+        now    = discord.utils.utcnow()
+        agente = interaction.user
+
+        await database.add_arrest(
+            str(self.sospettato.id), self.reato.value, self.durata.value, agente.display_name
+        )
+
+        embed = discord.Embed(
+            title="⛓️ 𝐀𝐑𝐑𝐄𝐒𝐓𝐎 𝐄𝐅𝐅𝐄𝐓𝐓𝐔𝐀𝐓𝐎",
+            color=discord.Color(0x8B0000),
+            timestamp=now
+        )
+        embed.set_thumbnail(url=self.sospettato.display_avatar.url)
+        embed.add_field(name="🕐 Data e Orario",  value=discord.utils.format_dt(now, style='F'), inline=False)
+        embed.add_field(name="📍 Luogo",          value=self.luogo.value,                        inline=True)
+        embed.add_field(name="🧑 Arrestato",      value=self.nome_cognome.value,                 inline=True)
+        embed.add_field(name="🏠 Indirizzo",      value=self.indirizzo.value,                    inline=False)
+        embed.add_field(name="📋 Reato",          value=self.reato.value,                        inline=False)
+        embed.add_field(name="⏱️ Durata pena",    value=self.durata.value,                       inline=True)
+        embed.add_field(name="👮 Agente",         value=agente.mention,                          inline=True)
+        embed.add_field(name="🎯 Tag Discord",    value=self.sospettato.mention,                 inline=True)
+        if self.foto and self.foto.content_type and self.foto.content_type.startswith("image/"):
+            embed.set_image(url=self.foto.url)
+        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
+        await interaction.response.send_message(embed=embed)
+
+        # ── DM all'arrestato ──────────────────────────────────────────────────
+        try:
+            await self.sospettato.send(embed=discord.Embed(
+                title="⛓️ 𝐒𝐞𝐢 𝐬𝐭𝐚𝐭𝐨 𝐚𝐫𝐫𝐞𝐬𝐭𝐚𝐭𝐨!",
+                description=(
+                    f"L'agente **{agente.display_name}** ti ha arrestato a **{self.luogo.value}**.\n"
+                    f"**Reato:** {self.reato.value}\n**Durata pena:** {self.durata.value}"
+                ),
+                color=discord.Color(0x8B0000)
+            ))
+        except Exception:
+            pass
+
+        # ── Log ───────────────────────────────────────────────────────────────
+        try:
+            ch = self.bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                await ch.send(embed=embed)
+        except Exception:
+            pass
+
+
 def setup_fine_commands(bot):
 
     # ── /multa ────────────────────────────────────────────────────────────────
@@ -15,14 +211,12 @@ def setup_fine_commands(bot):
     @app_commands.describe(
         sospettato="Il sospettato",
         importo="Valore della multa",
-        motivo="Motivazione",
-        foto="Foto del sospettato (opzionale)"
+        foto="Foto del sospettato/verbale (opzionale)"
     )
-    async def taglia(
+    async def multa(
         interaction: discord.Interaction,
         sospettato: discord.Member,
         importo: int,
-        motivo: str,
         foto: discord.Attachment = None
     ):
         if not has_sceriffo(interaction):
@@ -32,72 +226,33 @@ def setup_fine_commands(bot):
             await interaction.response.send_message("❌ Importo non valido.", ephemeral=True)
             return
 
-        await database.add_fine(str(sospettato.id), importo, motivo, interaction.user.display_name)
+        modal = MultaModal(bot, sospettato, importo, foto)
+        await interaction.response.send_modal(modal)
 
-        # ── Embed principale (nel canale corrente) ────────────────────────────
-        embed = discord.Embed(
-            title="🚔 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
-            color=discord.Color(0x1E90FF),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_thumbnail(url=sospettato.display_avatar.url)
-        embed.add_field(name="🧑 Sospettato",  value=sospettato.mention,        inline=True)
-        embed.add_field(name="💰 Multa",        value=f"${importo:,}",           inline=True)
-        embed.add_field(name="📋 Motivo",       value=motivo,                    inline=False)
-        embed.add_field(name="👮 Agente FDO",   value=interaction.user.mention,  inline=True)
-        if foto and foto.content_type and foto.content_type.startswith("image/"):
-            embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
-        await interaction.response.send_message(embed=embed)
+    # ── /modulo-arresto ───────────────────────────────────────────────────────
+    @bot.tree.command(name="modulo-arresto", description="[FDO] Compila il modulo di arresto ufficiale")
+    @app_commands.describe(
+        sospettato="La persona da arrestare",
+        foto="Foto del sospettato/verbale (opzionale)"
+    )
+    async def modulo_arresto(
+        interaction: discord.Interaction,
+        sospettato: discord.Member,
+        foto: discord.Attachment = None
+    ):
+        if not has_sceriffo(interaction):
+            await interaction.response.send_message("❌ Solo le FDO possono effettuare arresti.", ephemeral=True)
+            return
+        if sospettato.bot:
+            await interaction.response.send_message("❌ Non puoi arrestare un bot.", ephemeral=True)
+            return
 
-        # ── Annuncio nel canale ricercati ─────────────────────────────────────
-        try:
-            ricercati_ch = bot.get_channel(RICERCATI_CHANNEL_ID)
-            if ricercati_ch:
-                manifesto = discord.Embed(
-                    title="🔴 𝐑𝐈𝐂𝐄𝐑𝐂𝐀𝐓𝐎 — 𝐌𝐔𝐋𝐓𝐀 𝐄𝐌𝐄𝐒𝐒𝐀",
-                    color=discord.Color.red(),
-                    timestamp=discord.utils.utcnow()
-                )
-                manifesto.set_thumbnail(url=sospettato.display_avatar.url)
-                manifesto.add_field(name="🧑 Nome",      value=sospettato.mention,       inline=True)
-                manifesto.add_field(name="💰 Multa",     value=f"${importo:,}",          inline=True)
-                manifesto.add_field(name="📋 Reato",     value=motivo,                   inline=False)
-                manifesto.add_field(name="👮 Emessa da", value=interaction.user.mention, inline=True)
-                if foto and foto.content_type and foto.content_type.startswith("image/"):
-                    manifesto.set_image(url=foto.url)
-                manifesto.set_footer(text="🏙️ West Coast RP '93 — FDO / LSPD")
-                await ricercati_ch.send(
-                    content=f"<@&{CITTADINI_ROLE_ID}>",
-                    embed=manifesto
-                )
-        except Exception:
-            pass
-
-        # ── DM al sospettato ──────────────────────────────────────────────────
-        try:
-            await sospettato.send(embed=discord.Embed(
-                title="🚔 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧𝐚 𝐦𝐮𝐥𝐭𝐚!",
-                description=(
-                    f"L'agente **{interaction.user.display_name}** ti ha comminato una multa "
-                    f"di **${importo:,}**.\n**Motivo:** {motivo}"
-                ),
-                color=discord.Color.red()
-            ))
-        except Exception:
-            pass
-
-        # ── Log ───────────────────────────────────────────────────────────────
-        try:
-            ch = bot.get_channel(LOG_CHANNEL_ID)
-            if ch:
-                await ch.send(embed=embed)
-        except Exception:
-            pass
+        modal = ArrestoModal(bot, sospettato, foto)
+        await interaction.response.send_modal(modal)
 
     # ── /paga-multa ───────────────────────────────────────────────────────────
     @bot.tree.command(name="paga-multa", description="Paga le multe a tuo carico")
-    async def paga_taglia(interaction: discord.Interaction):
+    async def paga_multa(interaction: discord.Interaction):
         uid   = str(interaction.user.id)
         fines = await database.get_fines(uid)
         if not fines:
@@ -126,7 +281,7 @@ def setup_fine_commands(bot):
     # ── /controlla-multa ──────────────────────────────────────────────────────
     @bot.tree.command(name="controlla-multa", description="[FDO] Verifica le multe di un giocatore")
     @app_commands.describe(giocatore="Il giocatore")
-    async def controlla_taglia(interaction: discord.Interaction, giocatore: discord.Member):
+    async def controlla_multa(interaction: discord.Interaction, giocatore: discord.Member):
         if not has_sceriffo(interaction):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
             return
@@ -202,7 +357,6 @@ def setup_fine_commands(bot):
         embed.set_footer(text="🏙️ West Coast RP '93 — Assegno Bancario")
         await interaction.response.send_message(embed=embed)
 
-        # ── DM al destinatario ────────────────────────────────────────────────
         try:
             dm = discord.Embed(
                 title="🏦 Hai ricevuto un assegno!",
@@ -216,7 +370,6 @@ def setup_fine_commands(bot):
         except Exception:
             pass
 
-        # ── Log ───────────────────────────────────────────────────────────────
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch:
