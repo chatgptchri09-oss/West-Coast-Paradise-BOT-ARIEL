@@ -108,6 +108,26 @@ async def init_db():
                 PRIMARY KEY (user_id, item_name)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS vehicle_registrations (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id         TEXT NOT NULL,
+                client_name     TEXT,
+                client_surname  TEXT,
+                vehicle_brand   TEXT,
+                vehicle_model   TEXT,
+                plate           TEXT UNIQUE,
+                price           INTEGER DEFAULT 0,
+                vehicle_type    TEXT DEFAULT 'personale',
+                photo_url       TEXT,
+                insurance       INTEGER DEFAULT 0,
+                modifications   TEXT DEFAULT '/////',
+                seized          INTEGER DEFAULT 0,
+                illegal         INTEGER DEFAULT 0,
+                registered_by   TEXT,
+                created_at      TEXT
+            )
+        """)
 
         # Upgrade sicuro su db già esistenti
         for stmt in [
@@ -117,6 +137,13 @@ async def init_db():
             "ALTER TABLE documents ADD COLUMN extra TEXT DEFAULT NULL",
             "ALTER TABLE shop_items ADD COLUMN required_role INTEGER DEFAULT NULL",
             "ALTER TABLE weapon_durability ADD COLUMN last_decay_ts REAL DEFAULT 0",
+            "ALTER TABLE vehicle_registrations ADD COLUMN vehicle_brand TEXT",
+            "ALTER TABLE vehicle_registrations ADD COLUMN price INTEGER DEFAULT 0",
+            "ALTER TABLE vehicle_registrations ADD COLUMN vehicle_type TEXT DEFAULT 'personale'",
+            "ALTER TABLE vehicle_registrations ADD COLUMN photo_url TEXT",
+            "ALTER TABLE vehicle_registrations ADD COLUMN illegal INTEGER DEFAULT 0",
+            "ALTER TABLE vehicle_registrations ADD COLUMN registered_by TEXT",
+            "ALTER TABLE vehicle_registrations ADD COLUMN created_at TEXT",
         ]:
             try:
                 await db.execute(stmt)
@@ -381,6 +408,52 @@ async def get_all_users_sorted() -> list:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             "SELECT user_id, cash, bank FROM users WHERE user_id != 'STATO' ORDER BY (cash+bank) DESC"
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+
+async def get_invoices_history_by_user(user_id: str, limit: int = 10) -> list:
+    """Tutte le fatture ricevute (pagate e non), le più recenti prima."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM invoices WHERE to_user=? ORDER BY id DESC LIMIT ?", (user_id, limit)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+
+# ── VEICOLI ───────────────────────────────────────────────────────────────────
+
+async def add_vehicle(user_id: str, client_name: str, client_surname: str,
+                      vehicle_brand: str, vehicle_model: str, plate: str,
+                      price: int, vehicle_type: str, photo_url: str,
+                      registered_by: str) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute("""
+            INSERT INTO vehicle_registrations
+                (user_id, client_name, client_surname, vehicle_brand, vehicle_model,
+                 plate, price, vehicle_type, photo_url, insurance, modifications,
+                 seized, illegal, registered_by, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,0,'/////',0,0,?,?)
+        """, (user_id, client_name, client_surname, vehicle_brand, vehicle_model,
+              plate, price, vehicle_type, photo_url, registered_by,
+              datetime.utcnow().strftime("%d/%m/%Y %H:%M")))
+        await db.commit()
+        return c.lastrowid
+
+async def get_vehicle_by_plate(plate: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM vehicle_registrations WHERE plate=?", (plate,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def get_vehicles_by_user(user_id: str) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM vehicle_registrations WHERE user_id=? ORDER BY id DESC", (user_id,)
         ) as c:
             return [dict(r) for r in await c.fetchall()]
 
