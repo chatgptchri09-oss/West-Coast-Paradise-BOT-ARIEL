@@ -5,7 +5,10 @@ import aiosqlite
 import database
 from constants import (
     DATABASE_NAME, LOG_CHANNEL_ID, CONCESSIONARIO_ROLE_ID,
-    LIBRETTO_PERSONALE_CH, LIBRETTO_AZIENDALE_CH
+    LIBRETTO_PERSONALE_CH, LIBRETTO_AZIENDALE_CH,
+    DOTTORE_ROLE_ID, ARMERIA_ROLE_ID, STAFF_ROLE_ID,
+    REGISTRO_CERTIFICATI_MEDICI_CH, REGISTRO_PORTODARMI_CH,
+    has_staff, has_sceriffo
 )
 
 VEHICLE_LOG_CHANNEL_ID = 1414759489998946396
@@ -244,6 +247,176 @@ class ControlloTargaView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  MODAL — Certificato Medico
+# ══════════════════════════════════════════════════════════════════════════════
+class CertificatoMedicoModal(discord.ui.Modal, title="🩺 𝐂𝐞𝐫𝐭𝐢𝐟𝐢𝐜𝐚𝐭𝐨 𝐌𝐞𝐝𝐢𝐜𝐨"):
+    nome = discord.ui.TextInput(label="Nome", placeholder="Es: John", required=True, max_length=50)
+    cognome = discord.ui.TextInput(label="Cognome", placeholder="Es: Smith", required=True, max_length=50)
+    eta = discord.ui.TextInput(label="Età", placeholder="Es: 28", required=True, max_length=3)
+    esito = discord.ui.TextInput(
+        label="Esito certificazione",
+        placeholder="Es: Idoneo alla certificazione",
+        required=True, max_length=100
+    )
+    motivo = discord.ui.TextInput(
+        label="Motivo",
+        style=discord.TextStyle.paragraph,
+        placeholder="Descrivi il motivo della visita/certificazione...",
+        required=True, max_length=300
+    )
+
+    def __init__(self, bot, paziente: discord.Member):
+        super().__init__()
+        self.bot     = bot
+        self.paziente = paziente
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            eta_val = int(self.eta.value.strip())
+        except ValueError:
+            await interaction.response.send_message("❌ Età non valida. Inserisci un numero.", ephemeral=True)
+            return
+
+        await database.set_medical_certificate(
+            str(self.paziente.id), self.nome.value, self.cognome.value, eta_val,
+            self.esito.value, self.motivo.value, str(interaction.user.id)
+        )
+
+        embed = discord.Embed(
+            title="🩺 𝐂𝐄𝐑𝐓𝐈𝐅𝐈𝐂𝐀𝐓𝐎 𝐌𝐄𝐃𝐈𝐂𝐎 𝐑𝐈𝐋𝐀𝐒𝐂𝐈𝐀𝐓𝐎",
+            color=discord.Color(0x1E90FF),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_thumbnail(url=self.paziente.display_avatar.url)
+        embed.add_field(name="👤 Paziente",  value=f"{self.nome.value} {self.cognome.value}\n{self.paziente.mention}", inline=True)
+        embed.add_field(name="🎂 Età",       value=self.eta.value,                inline=True)
+        embed.add_field(name="✅ Esito",      value=self.esito.value,             inline=False)
+        embed.add_field(name="📋 Motivo",    value=self.motivo.value,             inline=False)
+        embed.add_field(name="🩺 Medico",    value=interaction.user.mention,      inline=True)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Servizi Medici")
+
+        await interaction.response.send_message(embed=embed)
+
+        # ── Registro certificati medici ──────────────────────────────────────
+        try:
+            reg_ch = self.bot.get_channel(REGISTRO_CERTIFICATI_MEDICI_CH)
+            if reg_ch:
+                await reg_ch.send(embed=embed)
+        except Exception:
+            pass
+
+        # ── DM al paziente ────────────────────────────────────────────────────
+        try:
+            dm = discord.Embed(
+                title="🩺 Hai ricevuto un certificato medico!",
+                description=(
+                    f"Il dottore **{interaction.user.display_name}** ti ha rilasciato un certificato.\n\n"
+                    f"**Esito:** {self.esito.value}\n**Motivo:** {self.motivo.value}"
+                ),
+                color=discord.Color(0x1E90FF)
+            )
+            dm.set_footer(text="🏙️ West Coast RP '93 — Servizi Medici")
+            await self.paziente.send(embed=dm)
+        except Exception:
+            pass
+
+        try:
+            ch = self.bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                log = discord.Embed(title="🩺 LOG — Certificato Medico Rilasciato", color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
+                log.add_field(name="🩺 Medico",   value=interaction.user.mention, inline=True)
+                log.add_field(name="👤 Paziente", value=self.paziente.mention,    inline=True)
+                await ch.send(embed=log)
+        except Exception:
+            pass
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MODAL — Porto d'Armi
+# ══════════════════════════════════════════════════════════════════════════════
+class PortoArmiModal(discord.ui.Modal, title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'𝐀𝐫𝐦𝐢"):
+    nome = discord.ui.TextInput(label="Nome", placeholder="Es: John", required=True, max_length=50)
+    cognome = discord.ui.TextInput(label="Cognome", placeholder="Es: Smith", required=True, max_length=50)
+    eta = discord.ui.TextInput(label="Età", placeholder="Es: 28", required=True, max_length=3)
+    info_arma = discord.ui.TextInput(
+        label="Informazioni arma",
+        placeholder="Es: Pistola calibro 9mm, matricola...",
+        required=True, max_length=150
+    )
+    motivo = discord.ui.TextInput(
+        label="Motivo",
+        style=discord.TextStyle.paragraph,
+        placeholder="Descrivi il motivo della richiesta...",
+        required=True, max_length=300
+    )
+
+    def __init__(self, bot, richiedente: discord.Member):
+        super().__init__()
+        self.bot        = bot
+        self.richiedente = richiedente
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            eta_val = int(self.eta.value.strip())
+        except ValueError:
+            await interaction.response.send_message("❌ Età non valida. Inserisci un numero.", ephemeral=True)
+            return
+
+        await database.set_gun_license(
+            str(self.richiedente.id), self.nome.value, self.cognome.value, eta_val,
+            self.info_arma.value, self.motivo.value, str(interaction.user.id)
+        )
+
+        embed = discord.Embed(
+            title="🔫 𝐏𝐎𝐑𝐓𝐎 𝐃'𝐀𝐑𝐌𝐈 𝐑𝐈𝐋𝐀𝐒𝐂𝐈𝐀𝐓𝐎",
+            color=discord.Color(0x1E90FF),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_thumbnail(url=self.richiedente.display_avatar.url)
+        embed.add_field(name="👤 Titolare",         value=f"{self.nome.value} {self.cognome.value}\n{self.richiedente.mention}", inline=True)
+        embed.add_field(name="🎂 Età",              value=self.eta.value,                inline=True)
+        embed.add_field(name="🔫 Informazioni arma", value=self.info_arma.value,          inline=False)
+        embed.add_field(name="📋 Motivo",           value=self.motivo.value,             inline=False)
+        embed.add_field(name="🏪 Armeria",          value=interaction.user.mention,       inline=True)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Armeria")
+
+        await interaction.response.send_message(embed=embed)
+
+        # ── Registro porto d'armi ────────────────────────────────────────────
+        try:
+            reg_ch = self.bot.get_channel(REGISTRO_PORTODARMI_CH)
+            if reg_ch:
+                await reg_ch.send(embed=embed)
+        except Exception:
+            pass
+
+        # ── DM al richiedente ─────────────────────────────────────────────────
+        try:
+            dm = discord.Embed(
+                title="🔫 Hai ricevuto il porto d'armi!",
+                description=(
+                    f"L'Armeria ti ha rilasciato un porto d'armi.\n\n"
+                    f"**Arma:** {self.info_arma.value}\n**Motivo:** {self.motivo.value}"
+                ),
+                color=discord.Color(0x1E90FF)
+            )
+            dm.set_footer(text="🏙️ West Coast RP '93 — Armeria")
+            await self.richiedente.send(embed=dm)
+        except Exception:
+            pass
+
+        try:
+            ch = self.bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                log = discord.Embed(title="🔫 LOG — Porto d'Armi Rilasciato", color=discord.Color(0x1E90FF), timestamp=discord.utils.utcnow())
+                log.add_field(name="🏪 Armeria",   value=interaction.user.mention,   inline=True)
+                log.add_field(name="👤 Titolare",  value=self.richiedente.mention,   inline=True)
+                await ch.send(embed=log)
+        except Exception:
+            pass
+
+
 def setup_vehicle_commands(bot: commands.Bot):
 
     # ── /dai-libretto ────────────────────────────────────────────────────────
@@ -272,6 +445,84 @@ def setup_vehicle_commands(bot: commands.Bot):
 
         modal = LibrettoModal(bot, utente, tipo, foto_veicolo)
         await interaction.response.send_modal(modal)
+
+    # ── /dai-certificato-medico ──────────────────────────────────────────────
+    @bot.tree.command(name="dai-certificato-medico", description="[Servizi Medici] Rilascia un certificato medico")
+    @app_commands.describe(utente="Il paziente a cui rilasciare il certificato")
+    async def dai_certificato_medico(interaction: discord.Interaction, utente: discord.Member):
+        if not has_role(interaction, DOTTORE_ROLE_ID):
+            await interaction.response.send_message("❌ Solo i Servizi Medici possono usare questo comando!", ephemeral=True)
+            return
+        if utente.bot:
+            await interaction.response.send_message("❌ Non puoi certificare un bot.", ephemeral=True)
+            return
+
+        modal = CertificatoMedicoModal(bot, utente)
+        await interaction.response.send_modal(modal)
+
+    # ── /rimuovi-certificato-medico ──────────────────────────────────────────
+    @bot.tree.command(name="rimuovi-certificato-medico", description="[Staff] Rimuovi un certificato medico")
+    @app_commands.describe(utente="L'utente a cui rimuovere il certificato")
+    async def rimuovi_certificato_medico(interaction: discord.Interaction, utente: discord.Member):
+        if not has_staff(interaction):
+            await interaction.response.send_message("❌ Solo lo Staff può usare questo comando!", ephemeral=True)
+            return
+
+        rimosso = await database.delete_medical_certificate(str(utente.id))
+        if not rimosso:
+            await interaction.response.send_message(f"❌ {utente.mention} non ha nessun certificato medico registrato.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"✅ Certificato medico di {utente.mention} rimosso.", ephemeral=True)
+
+        try:
+            ch = bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                log = discord.Embed(title="🗑️ LOG — Certificato Medico Rimosso", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+                log.add_field(name="👮 Rimosso da", value=interaction.user.mention, inline=True)
+                log.add_field(name="👤 Utente",     value=utente.mention,           inline=True)
+                await ch.send(embed=log)
+        except Exception:
+            pass
+
+    # ── /dai-portodarmi ──────────────────────────────────────────────────────
+    @bot.tree.command(name="dai-portodarmi", description="[Armeria] Rilascia un porto d'armi")
+    @app_commands.describe(utente="Il richiedente a cui rilasciare il porto d'armi")
+    async def dai_portodarmi(interaction: discord.Interaction, utente: discord.Member):
+        if not has_role(interaction, ARMERIA_ROLE_ID):
+            await interaction.response.send_message("❌ Solo l'Armeria può usare questo comando!", ephemeral=True)
+            return
+        if utente.bot:
+            await interaction.response.send_message("❌ Non puoi rilasciare un porto d'armi a un bot.", ephemeral=True)
+            return
+
+        modal = PortoArmiModal(bot, utente)
+        await interaction.response.send_modal(modal)
+
+    # ── /rimuovi-portodarmi ───────────────────────────────────────────────────
+    @bot.tree.command(name="rimuovi-portodarmi", description="[Staff/FDO] Rimuovi un porto d'armi")
+    @app_commands.describe(utente="L'utente a cui rimuovere il porto d'armi")
+    async def rimuovi_portodarmi(interaction: discord.Interaction, utente: discord.Member):
+        if not has_staff(interaction) and not has_sceriffo(interaction):
+            await interaction.response.send_message("❌ Solo Staff o FDO possono usare questo comando!", ephemeral=True)
+            return
+
+        rimosso = await database.delete_gun_license(str(utente.id))
+        if not rimosso:
+            await interaction.response.send_message(f"❌ {utente.mention} non ha nessun porto d'armi registrato.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"✅ Porto d'armi di {utente.mention} rimosso.", ephemeral=True)
+
+        try:
+            ch = bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                log = discord.Embed(title="🗑️ LOG — Porto d'Armi Rimosso", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+                log.add_field(name="👮 Rimosso da", value=interaction.user.mention, inline=True)
+                log.add_field(name="👤 Utente",     value=utente.mention,           inline=True)
+                await ch.send(embed=log)
+        except Exception:
+            pass
 
     # ── /controllatarga ──────────────────────────────────────────────────────
     @bot.tree.command(name="controllatarga", description="[LFD] Controlla la targa di un veicolo")
@@ -498,4 +749,4 @@ def setup_vehicle_commands(bot: commands.Bot):
                     await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa_val}**!", ephemeral=True)
         except Exception as e:
             print(f"Errore in rimuovilibretto: {e}")
-            await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
+            await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True
