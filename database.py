@@ -129,6 +129,30 @@ async def init_db():
                 created_at      TEXT
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS medical_certificates (
+                user_id       TEXT PRIMARY KEY,
+                nome          TEXT,
+                cognome       TEXT,
+                eta           INTEGER,
+                esito         TEXT,
+                motivo        TEXT,
+                issued_by     TEXT,
+                created_at    TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS gun_licenses (
+                user_id       TEXT PRIMARY KEY,
+                nome          TEXT,
+                cognome       TEXT,
+                eta           INTEGER,
+                info_arma     TEXT,
+                motivo        TEXT,
+                issued_by     TEXT,
+                created_at    TEXT
+            )
+        """)
 
         # Upgrade sicuro su db già esistenti
         for stmt in [
@@ -705,3 +729,65 @@ async def delete_fake_document(user_id: str):
     async with aiosqlite.connect(DATABASE_NAME) as db:
         await db.execute("DELETE FROM fake_documents WHERE user_id=?", (user_id,))
         await db.commit()
+
+
+# ── CERTIFICATI MEDICI ────────────────────────────────────────────────────────
+
+async def set_medical_certificate(user_id: str, nome: str, cognome: str, eta: int,
+                                  esito: str, motivo: str, issued_by: str):
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("""
+            INSERT INTO medical_certificates (user_id,nome,cognome,eta,esito,motivo,issued_by,created_at)
+            VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                nome=excluded.nome, cognome=excluded.cognome, eta=excluded.eta,
+                esito=excluded.esito, motivo=excluded.motivo,
+                issued_by=excluded.issued_by, created_at=excluded.created_at
+        """, (user_id, nome, cognome, eta, esito, motivo, issued_by,
+              datetime.utcnow().strftime("%d/%m/%Y %H:%M")))
+        await db.commit()
+
+async def get_medical_certificate(user_id: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM medical_certificates WHERE user_id=?", (user_id,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def delete_medical_certificate(user_id: str) -> bool:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute("DELETE FROM medical_certificates WHERE user_id=?", (user_id,))
+        await db.commit()
+        return c.rowcount > 0
+
+
+# ── PORTO D'ARMI ──────────────────────────────────────────────────────────────
+
+async def set_gun_license(user_id: str, nome: str, cognome: str, eta: int,
+                          info_arma: str, motivo: str, issued_by: str):
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("""
+            INSERT INTO gun_licenses (user_id,nome,cognome,eta,info_arma,motivo,issued_by,created_at)
+            VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                nome=excluded.nome, cognome=excluded.cognome, eta=excluded.eta,
+                info_arma=excluded.info_arma, motivo=excluded.motivo,
+                issued_by=excluded.issued_by, created_at=excluded.created_at
+        """, (user_id, nome, cognome, eta, info_arma, motivo, issued_by,
+              datetime.utcnow().strftime("%d/%m/%Y %H:%M")))
+        await db.commit()
+
+async def get_gun_license(user_id: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM gun_licenses WHERE user_id=?", (user_id,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def delete_gun_license(user_id: str) -> bool:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute("DELETE FROM gun_licenses WHERE user_id=?", (user_id,))
+        await db.commit()
+        return c.rowcount > 0
