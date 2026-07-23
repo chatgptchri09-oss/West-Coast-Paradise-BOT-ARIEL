@@ -6,31 +6,31 @@ from constants import (
     LOG_CHANNEL_ID, DATABASE_NAME, STAFF_ROLE_ID, CHIAVE_ROLE_ID,
     ARMERIA_ROLE_ID, CONCESSIONARIO_ROLE_ID, MECCANICO_ROLE_ID, AGENZIA_IMMOBILIARE_ROLE_ID,
     BANCA_ROLE_ID, MARKET_ROLE_ID, PEGASUS_ROLE_ID, NOTARIATO_ROLE_ID,
-    BAR_ROLE_ID, COUNTY_DONUTS_ROLE_ID, COUNTY_IMPOUND_ROLE_ID,
+    BAR_ROLE_ID, COUNTY_DONUTS_ROLE_ID, COUNTY_IMPOUND_ROLE_ID, DOTTORE_ROLE_ID,
     LOG_ARMERIA_CH, LOG_CONCESSIONARIO_CH, LOG_AGENZIA_CH, LOG_MECCANICO_CH,
     LOG_PEGASUS_CH, LOG_NOTARIATO_CH, LOG_YELLOWJACK_CH, LOG_COUNTYDONUTS_CH, LOG_COUNTYIMPOUND_CH,
+    LOG_DOTTORE_CH,
 )
 
-
-LOG_BANCA_CH = 1525863299714121908
-LOG_MARKET_CH = 1424111628374511729
 # Percentuale che va all'emittente (il resto va al fondo cassa azienda)
 PERCENTUALE_EMITTENTE = 0.25
 
 # NOTA: nomi allineati a COMPANY_ROLES/COMPANY_EMOJI in constants.py e commands_fondocassa.py
-
+# ⚠️ Banca e Market non hanno un canale log dedicato: uso LOG_CHANNEL_ID come fallback.
+#     Se vuoi canali log separati per Palomino Bank e Supermarket, mandami gli ID.
 AZIENDE_CONFIG = {
     "Armeria":        {"ruolo": ARMERIA_ROLE_ID,             "log_ch": LOG_ARMERIA_CH,       "emoji": "🔫", "fondocassa": "Armeria"},
     "Concessionario":  {"ruolo": CONCESSIONARIO_ROLE_ID,      "log_ch": LOG_CONCESSIONARIO_CH, "emoji": "🚗", "fondocassa": "Concessionario"},
     "Meccanico":       {"ruolo": MECCANICO_ROLE_ID,           "log_ch": LOG_MECCANICO_CH,     "emoji": "🔧", "fondocassa": "Meccanico"},
     "Agenzia Imm.":    {"ruolo": AGENZIA_IMMOBILIARE_ROLE_ID, "log_ch": LOG_AGENZIA_CH,       "emoji": "🏠", "fondocassa": "Agenzia Imm."},
-    "Banca":           {"ruolo": BANCA_ROLE_ID,               "log_ch": LOG_BANCA_CH,         "emoji": "🏦", "fondocassa": "Banca"},
-    "Market":          {"ruolo": MARKET_ROLE_ID,              "log_ch": LOG_MARKET_CH,       "emoji": "🛒", "fondocassa": "Market"},
+    "Banca":           {"ruolo": BANCA_ROLE_ID,               "log_ch": LOG_CHANNEL_ID,       "emoji": "🏦", "fondocassa": "Banca"},
+    "Market":          {"ruolo": MARKET_ROLE_ID,              "log_ch": LOG_CHANNEL_ID,       "emoji": "🛒", "fondocassa": "Market"},
     "Pegasus":         {"ruolo": PEGASUS_ROLE_ID,             "log_ch": LOG_PEGASUS_CH,       "emoji": "✈️", "fondocassa": "Pegasus"},
     "Notariato":       {"ruolo": NOTARIATO_ROLE_ID,           "log_ch": LOG_NOTARIATO_CH,     "emoji": "📝", "fondocassa": "Notariato"},
     "Bar":             {"ruolo": BAR_ROLE_ID,                 "log_ch": LOG_YELLOWJACK_CH,    "emoji": "🍻", "fondocassa": "Bar"},
     "County Donuts":   {"ruolo": COUNTY_DONUTS_ROLE_ID,       "log_ch": LOG_COUNTYDONUTS_CH,  "emoji": "🍩", "fondocassa": "County Donuts"},
     "County Impound":  {"ruolo": COUNTY_IMPOUND_ROLE_ID,      "log_ch": LOG_COUNTYIMPOUND_CH, "emoji": "🚛", "fondocassa": "County Impound"},
+    "Dottore":         {"ruolo": DOTTORE_ROLE_ID,             "log_ch": LOG_DOTTORE_CH,       "emoji": "🏥", "fondocassa": "Dottore"},
 }
 
 # ── Stato azioni criminali (in memoria — si resetta al riavvio) ────────────────
@@ -68,6 +68,7 @@ def setup_invoice_commands(bot):
         app_commands.Choice(name="🍻 Bar",             value="Bar"),
         app_commands.Choice(name="🍩 County Donuts",   value="County Donuts"),
         app_commands.Choice(name="🚛 County Impound",  value="County Impound"),
+        app_commands.Choice(name="🏥 Dottore",         value="Dottore"),
     ])
     async def fattura(interaction: discord.Interaction, destinatario: discord.Member,
                       importo: int, descrizione: str, azienda: str):
