@@ -77,25 +77,25 @@ DROGA_CHOICES = [
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GRUPPO /contrabbando — 12 comandi accorpati in 1 solo comando registrato
+#  GRUPPO /nero — 12 comandi accorpati in 1 solo comando registrato
 #  su Discord (i sottocomandi NON contano verso il limite di 100 comandi)
 # ══════════════════════════════════════════════════════════════════════════════
-contrabbando_group = app_commands.Group(
-    name="contrabbando",
-    description="Comandi di contrabbando: raccolta, vendita, produzione"
+nero_group = app_commands.Group(
+    name="nero",
+    description="Mercato Nero: raccolta, vendita, produzione illegale"
 )
-raccolta_group   = app_commands.Group(name="raccolta",           description="Raccolta droga",              parent=contrabbando_group)
-vendita_group    = app_commands.Group(name="vendita",            description="Vendita droga",                parent=contrabbando_group)
-alcool_group     = app_commands.Group(name="alcool",             description="Creazione alcol clandestino",  parent=contrabbando_group)
-distill_group    = app_commands.Group(name="distillazione",      description="Distillazione",                parent=contrabbando_group)
-moonshine_group  = app_commands.Group(name="vendita-alcool",     description="Vendita alcol clandestino",    parent=contrabbando_group)
-armi_group       = app_commands.Group(name="armi",               description="Costruzione armi [Armeria]",   parent=contrabbando_group)
+raccolta_group   = app_commands.Group(name="raccolta",           description="Raccolta droga",              parent=nero_group)
+vendita_group    = app_commands.Group(name="vendita",            description="Vendita droga",                parent=nero_group)
+alcool_group     = app_commands.Group(name="alcool",             description="Creazione alcol clandestino",  parent=nero_group)
+distill_group    = app_commands.Group(name="distillazione",      description="Distillazione",                parent=nero_group)
+moonshine_group  = app_commands.Group(name="vendita-alcool",     description="Vendita alcol clandestino",    parent=nero_group)
+armi_group       = app_commands.Group(name="armi",               description="Costruzione armi [Armeria]",   parent=nero_group)
 
 
 def setup_theft_commands(bot):
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando raccolta inizia | fine
+    #  /nero raccolta inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @raccolta_group.command(name="inizia", description="Inizia una sessione di raccolta droga")
@@ -111,7 +111,7 @@ def setup_theft_commands(bot):
         if uid in _raccolte_attive:
             r = _raccolte_attive[uid]
             await interaction.response.send_message(
-                f"❌ Hai già una raccolta di **{r['droga']}** in corso! Usa `/contrabbando raccolta fine` prima.", ephemeral=True); return
+                f"❌ Hai già una raccolta di **{r['droga']}** in corso! Usa `/nero raccolta fine` prima.", ephemeral=True); return
         ruolo_id = DROGA_CONFIG.get(droga)
         if not ruolo_id or not isinstance(member, discord.Member) or \
            not any(r.id == ruolo_id for r in member.roles):
@@ -154,7 +154,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta | Usa /contrabbando raccolta fine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta | Usa /nero raccolta fine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -170,7 +170,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _raccolte_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna raccolta attiva. Usa `/contrabbando raccolta inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna raccolta attiva. Usa `/nero raccolta inizia` prima.", ephemeral=True); return
         sessione = _raccolte_attive[uid]
         if sessione["droga"] != droga:
             await interaction.response.send_message(
@@ -205,7 +205,7 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando vendita inizia | fine
+    #  /nero vendita inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @vendita_group.command(name="inizia", description="Inizia una sessione di vendita droga")
@@ -221,7 +221,7 @@ def setup_theft_commands(bot):
         if uid in _vendite_attive:
             v = _vendite_attive[uid]
             await interaction.response.send_message(
-                f"❌ Hai già una vendita di **{v['droga']}** in corso! Usa `/contrabbando vendita fine` prima.", ephemeral=True); return
+                f"❌ Hai già una vendita di **{v['droga']}** in corso! Usa `/nero vendita fine` prima.", ephemeral=True); return
         ruolo_id = DROGA_CONFIG.get(droga)
         if not ruolo_id or not isinstance(member, discord.Member) or \
            not any(r.id == ruolo_id for r in member.roles):
@@ -261,7 +261,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita | Usa /contrabbando vendita fine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita | Usa /nero vendita fine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -277,7 +277,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _vendite_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna vendita attiva. Usa `/contrabbando vendita inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna vendita attiva. Usa `/nero vendita inizia` prima.", ephemeral=True); return
         sessione = _vendite_attive[uid]
         if sessione["droga"] != droga:
             await interaction.response.send_message(
@@ -312,7 +312,7 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando alcool inizia | fine
+    #  /nero alcool inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @alcool_group.command(name="inizia", description="[Distilleria] Inizia la creazione di una partita di alcol clandestino")
@@ -331,7 +331,7 @@ def setup_theft_commands(bot):
                 "❌ Solo i **Distillatori** possono usare questo comando.", ephemeral=True); return
         if uid in _creazioni_attive:
             await interaction.response.send_message(
-                f"❌ Hai già una creazione di **{_creazioni_attive[uid]['alcool']}** in corso!\nUsa `/contrabbando alcool fine` prima.", ephemeral=True); return
+                f"❌ Hai già una creazione di **{_creazioni_attive[uid]['alcool']}** in corso!\nUsa `/nero alcool fine` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _creazioni_attive[uid] = {"alcool": alcool, "inizio": now}
 
@@ -366,7 +366,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /contrabbando alcool fine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /nero alcool fine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -380,7 +380,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _creazioni_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna creazione in corso. Usa `/contrabbando alcool inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna creazione in corso. Usa `/nero alcool inizia` prima.", ephemeral=True); return
         sessione = _creazioni_attive[uid]
         alcool   = sessione["alcool"]
         now      = datetime.now(timezone.utc)
@@ -419,7 +419,7 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando distillazione inizia | fine
+    #  /nero distillazione inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @distill_group.command(name="inizia", description="[Distilleria] Inizia una sessione di distillazione")
@@ -438,7 +438,7 @@ def setup_theft_commands(bot):
                 "❌ Solo i **Distillatori** possono usare questo comando.", ephemeral=True); return
         if uid in _distillazioni_attive:
             await interaction.response.send_message(
-                f"❌ Hai già una distillazione in corso!\nUsa `/contrabbando distillazione fine` prima.", ephemeral=True); return
+                f"❌ Hai già una distillazione in corso!\nUsa `/nero distillazione fine` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _distillazioni_attive[uid] = {"alcool": alcool, "inizio": now}
 
@@ -473,7 +473,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /contrabbando distillazione fine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /nero distillazione fine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -487,7 +487,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _distillazioni_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna distillazione in corso. Usa `/contrabbando distillazione inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna distillazione in corso. Usa `/nero distillazione inizia` prima.", ephemeral=True); return
         sessione = _distillazioni_attive[uid]
         alcool   = sessione["alcool"]
         now      = datetime.now(timezone.utc)
@@ -526,7 +526,7 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando vendita-alcool inizia | fine
+    #  /nero vendita-alcool inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @moonshine_group.command(name="inizia", description="[Distilleria] Inizia una sessione di vendita alcol clandestino")
@@ -544,7 +544,7 @@ def setup_theft_commands(bot):
                 "❌ Solo i **Distillatori** possono usare questo comando.", ephemeral=True); return
         if uid in _vendite_moonshine_attive:
             await interaction.response.send_message(
-                "❌ Hai già una vendita di **🥃 Alcol Clandestino** in corso!\nUsa `/contrabbando vendita-alcool fine` prima.", ephemeral=True); return
+                "❌ Hai già una vendita di **🥃 Alcol Clandestino** in corso!\nUsa `/nero vendita-alcool fine` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _vendite_moonshine_attive[uid] = {"inizio": now}
 
@@ -579,7 +579,7 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /contrabbando vendita-alcool fine per terminare")
+        embed.set_footer(text="🏙️ West Coast RP '93 — Distilleria | /nero vendita-alcool fine per terminare")
         await interaction.response.send_message(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -593,7 +593,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _vendite_moonshine_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna vendita di alcol in corso. Usa `/contrabbando vendita-alcool inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna vendita di alcol in corso. Usa `/nero vendita-alcool inizia` prima.", ephemeral=True); return
         sessione = _vendite_moonshine_attive[uid]
         now      = datetime.now(timezone.utc)
         inizio   = sessione["inizio"]
@@ -631,7 +631,7 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /contrabbando armi inizia | fine
+    #  /nero armi inizia | fine
     # ══════════════════════════════════════════════════════════════════════════
 
     @armi_group.command(name="inizia", description="[Armeria] Inizia una sessione di costruzione armi")
@@ -651,7 +651,7 @@ def setup_theft_commands(bot):
         if uid in _creazioni_armi_attive:
             await interaction.response.send_message(
                 f"❌ Hai già una costruzione di **{_creazioni_armi_attive[uid]['arma']}** in corso!\n"
-                f"Usa `/contrabbando armi fine` prima.", ephemeral=True); return
+                f"Usa `/nero armi fine` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _creazioni_armi_attive[uid] = {"arma": arma, "inizio": now}
 
@@ -695,7 +695,7 @@ def setup_theft_commands(bot):
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
         embed.set_footer(
-            text="🏙️ West Coast RP '93 — Armeria | Usa /contrabbando armi fine per completare",
+            text="🏙️ West Coast RP '93 — Armeria | Usa /nero armi fine per completare",
             icon_url=member.display_avatar.url
         )
         await interaction.response.send_message(embed=embed)
@@ -711,7 +711,7 @@ def setup_theft_commands(bot):
         uid = str(interaction.user.id)
         if uid not in _creazioni_armi_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna costruzione in corso.\nUsa `/contrabbando armi inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna costruzione in corso.\nUsa `/nero armi inizia` prima.", ephemeral=True); return
         sessione = _creazioni_armi_attive[uid]
         arma     = sessione["arma"]
         now      = datetime.now(timezone.utc)
@@ -756,4 +756,4 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ── Registra il gruppo (1 solo comando verso il limite di 100) ─────────────
-    bot.tree.add_command(contrabbando_group)
+    bot.tree.add_command(nero_group)
