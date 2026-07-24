@@ -8,12 +8,32 @@ from constants import (
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PORTAFOGLIO — Select Menu con Documento, Zaino, Proprietà, Libretti, Fatture
+#  PORTAFOGLIO — Select Menu con Documento, Zaino, Proprietà, Libretti, Fatture,
+#  Certificato Medico, Porto d'Armi + tasto "📢 Mostra" per rendere pubblica
+#  la sezione attualmente selezionata
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _hunger_bar(v: int) -> str:
     f = round(v / 10)
     return "█" * f + "░" * (10 - f) + f"  **{v}%**"
+
+
+class MostraButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Mostra", style=discord.ButtonStyle.primary, emoji="📢", row=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: "PortafoglioView" = self.view
+        if view.current_embed is None or view.current_label is None:
+            await interaction.response.send_message(
+                "❌ Seleziona prima una sezione dal menu qui sopra.", ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            content=f"📢 **{view.current_label}** di {view.target.mention} è stato mostrato da {interaction.user.mention}",
+            embed=view.current_embed
+        )
 
 
 class PortafoglioSelect(discord.ui.Select):
@@ -30,6 +50,10 @@ class PortafoglioSelect(discord.ui.Select):
                                  description="I veicoli registrati a tuo nome"),
             discord.SelectOption(label="📄 Fatture", value="fatture",
                                  description="Storico delle tue fatture ricevute"),
+            discord.SelectOption(label="🩺 Certificato Medico", value="certificato",
+                                 description="Il tuo certificato medico"),
+            discord.SelectOption(label="🔫 Porto d'Armi", value="portodarmi",
+                                 description="La tua licenza porto d'armi"),
             discord.SelectOption(label="⚖️ Fedina Penale", value="fedina",
                                  description="I tuoi precedenti con la legge"),
         ]
@@ -43,11 +67,13 @@ class PortafoglioSelect(discord.ui.Select):
 
         val = self.values[0]
         user_id = str(self.target.id)
+        view: "PortafoglioView" = self.view
 
         if val == "documento":
+            label = "Documento d'Identità"
             doc = await database.get_document(user_id)
             embed = discord.Embed(
-                title="<a:passaporto:1525964064134664372> 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
+                title="📜 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -63,13 +89,13 @@ class PortafoglioSelect(discord.ui.Select):
                 if doc.get("foto_url"):
                     embed.set_image(url=doc["foto_url"])
             embed.set_footer(text="🏙️ West Coast RP '93 — Documento")
-            await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "zaino":
+            label = "Zaino"
             items = await database.get_inventory(user_id)
             user  = await database.get_user(user_id)
             embed = discord.Embed(
-                title="<a:scatola:1529614295246045264> 𝐈𝐥 𝐭𝐮𝐨 𝐙𝐚𝐢𝐧𝐨",
+                title="🎒 𝐈𝐥 𝐭𝐮𝐨 𝐙𝐚𝐢𝐧𝐨",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -81,9 +107,9 @@ class PortafoglioSelect(discord.ui.Select):
                 desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in items)
                 embed.add_field(name="📦 Contenuto", value=desc, inline=False)
             embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
-            await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "proprieta":
+            label = "Proprietà"
             props = await database.get_properties(user_id)
             embed = discord.Embed(
                 title="🏡 𝐋𝐞 𝐭𝐮𝐞 𝐏𝐫𝐨𝐩𝐫𝐢𝐞𝐭à",
@@ -100,9 +126,9 @@ class PortafoglioSelect(discord.ui.Select):
                         inline=False
                     )
             embed.set_footer(text="🏙️ West Coast RP '93 — Proprietà")
-            await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "libretti":
+            label = "Libretti Veicoli"
             vehicles = await database.get_vehicles_by_user(user_id)
             embed = discord.Embed(
                 title="🚗 𝐈 𝐭𝐮𝐨𝐢 𝐋𝐢𝐛𝐫𝐞𝐭𝐭𝐢",
@@ -115,18 +141,19 @@ class PortafoglioSelect(discord.ui.Select):
                 for v in vehicles[:10]:
                     tipo_label = "🏢 Aziendale" if v.get("vehicle_type") == "aziendale" else "🚗 Personale"
                     stato = "⚠️ Sequestrato" if v.get("seized") else "✅ Regolare"
+                    colore = f" • 🎨 {v['vehicle_color']}" if v.get("vehicle_color") else ""
                     embed.add_field(
                         name=f"{v.get('vehicle_brand','')} {v['vehicle_model']} — `{v['plate']}`".strip(),
-                        value=f"{tipo_label} • {stato}\n💰 ${v.get('price', 0):,}",
+                        value=f"{tipo_label} • {stato}{colore}\n💰 ${v.get('price', 0):,}",
                         inline=False
                     )
             embed.set_footer(text="🏙️ West Coast RP '93 — Libretti Veicoli")
-            await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif val == "fatture":
+            label = "Fatture"
             invoices = await database.get_invoices_history_by_user(user_id, limit=10)
             embed = discord.Embed(
-                title="<a:fattura:1529614679436034158> 𝐋𝐞 𝐭𝐮𝐞 𝐅𝐚𝐭𝐭𝐮𝐫𝐞",
+                title="📄 𝐋𝐞 𝐭𝐮𝐞 𝐅𝐚𝐭𝐭𝐮𝐫𝐞",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -134,7 +161,6 @@ class PortafoglioSelect(discord.ui.Select):
                 embed.description = "*Non hai ricevuto nessuna fattura.*"
             else:
                 for inv in invoices:
-                    # La descrizione salva l'azienda come " | NomeAzienda" in fondo (vedi commands_invoice.py)
                     if " | " in inv["description"]:
                         desc_pulita, azienda = inv["description"].rsplit(" | ", 1)
                     else:
@@ -151,12 +177,50 @@ class PortafoglioSelect(discord.ui.Select):
                         inline=False
                     )
             embed.set_footer(text="🏙️ West Coast RP '93 — Storico Fatture (ultime 10)")
-            await interaction.response.edit_message(embed=embed, view=self.view)
+
+        elif val == "certificato":
+            label = "Certificato Medico"
+            cert = await database.get_medical_certificate(user_id)
+            embed = discord.Embed(
+                title="🩺 𝐂𝐞𝐫𝐭𝐢𝐟𝐢𝐜𝐚𝐭𝐨 𝐌𝐞𝐝𝐢𝐜𝐨",
+                color=discord.Color(0x1E90FF),
+                timestamp=discord.utils.utcnow()
+            )
+            if not cert:
+                embed.description = "*Non possiedi nessun certificato medico. Contatta i Servizi Medici.*"
+            else:
+                embed.add_field(name="👤 Nome",     value=f"{cert['nome']} {cert['cognome']}", inline=True)
+                embed.add_field(name="🎂 Età",      value=str(cert["eta"]),                    inline=True)
+                embed.add_field(name="✅ Esito",     value=cert["esito"],                       inline=False)
+                embed.add_field(name="📋 Motivo",   value=cert["motivo"],                       inline=False)
+                embed.add_field(name="🩺 Rilasciato da", value=f"<@{cert['issued_by']}>",       inline=True)
+                embed.add_field(name="📅 Data",     value=cert["created_at"],                  inline=True)
+            embed.set_footer(text="🏙️ West Coast RP '93 — Servizi Medici")
+
+        elif val == "portodarmi":
+            label = "Porto d'Armi"
+            lic = await database.get_gun_license(user_id)
+            embed = discord.Embed(
+                title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'𝐀𝐫𝐦𝐢",
+                color=discord.Color(0x1E90FF),
+                timestamp=discord.utils.utcnow()
+            )
+            if not lic:
+                embed.description = "*Non possiedi nessun porto d'armi. Contatta l'Armeria.*"
+            else:
+                embed.add_field(name="👤 Titolare",          value=f"{lic['nome']} {lic['cognome']}", inline=True)
+                embed.add_field(name="🎂 Età",               value=str(lic["eta"]),                    inline=True)
+                embed.add_field(name="🔫 Informazioni arma", value=lic["info_arma"],                    inline=False)
+                embed.add_field(name="📋 Motivo",            value=lic["motivo"],                       inline=False)
+                embed.add_field(name="🏪 Rilasciato da",     value=f"<@{lic['issued_by']}>",            inline=True)
+                embed.add_field(name="📅 Data",              value=lic["created_at"],                   inline=True)
+            embed.set_footer(text="🏙️ West Coast RP '93 — Armeria")
 
         elif val == "fedina":
+            label = "Fedina Penale"
             records = await database.get_criminal_records(user_id)
             embed = discord.Embed(
-                title="<a:file:1529617416403947760> 𝐅𝐞𝐝𝐢𝐧𝐚 𝐏𝐞𝐧𝐚𝐥𝐞",
+                title="⚖️ 𝐅𝐞𝐝𝐢𝐧𝐚 𝐏𝐞𝐧𝐚𝐥𝐞",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -170,13 +234,24 @@ class PortafoglioSelect(discord.ui.Select):
                         inline=False
                     )
             embed.set_footer(text="🏙️ West Coast RP '93 — Fedina Penale")
-            await interaction.response.edit_message(embed=embed, view=self.view)
+
+        else:
+            return
+
+        # Salva lo stato sul view così il tasto "📢 Mostra" sa cosa pubblicare
+        view.current_embed = embed
+        view.current_label = label
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 class PortafoglioView(discord.ui.View):
     def __init__(self, target: discord.Member):
         super().__init__(timeout=120)
+        self.target        = target
+        self.current_embed = None
+        self.current_label = None
         self.add_item(PortafoglioSelect(target))
+        self.add_item(MostraButton())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -193,7 +268,7 @@ class BancaModal(discord.ui.Modal):
 
     def __init__(self, action: str):
         self.action = action
-        title = "<a:money:1529617936707354644> Richiesta Prelievo" if action == "preleva" else "🏦 Richiesta Deposito"
+        title = "💸 Richiesta Prelievo" if action == "preleva" else "🏦 Richiesta Deposito"
         super().__init__(title=title)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -283,7 +358,7 @@ class ConfermaOperazioneView(discord.ui.View):
                 await interaction.response.edit_message(content="❌ Fondi insufficienti — operazione annullata.", view=None)
                 return
             await database.update_balance(self.user_id, cash=user["cash"]+self.amount, bank=user["bank"]-self.amount)
-            esito = f"<a:money:1529617936707354644> Hai prelevato **${self.amount:,}**. I contanti sono stati aggiunti al tuo portafoglio."
+            esito = f"💵 Hai prelevato **${self.amount:,}**. I contanti sono stati aggiunti al tuo portafoglio."
         else:
             if self.amount > user["cash"]:
                 await interaction.response.edit_message(content="❌ Contanti insufficienti — operazione annullata.", view=None)
@@ -361,7 +436,8 @@ def setup_wallet_commands(bot):
             title=f"<a:Portafoglio:1462442004569919629> 𝐏𝐨𝐫𝐭𝐚𝐟𝐨𝐠𝐥𝐢𝐨 𝐝𝐢 {interaction.user.mention}",
             description=(
                 "Seleziona una sezione dal menu qui sotto per visualizzare\n"
-                "le tue informazioni personali a Los Santos."
+                "le tue informazioni personali a Los Santos.\n\n"
+                "Usa **📢 Mostra** per condividere pubblicamente la sezione selezionata."
             ),
             color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
@@ -419,7 +495,7 @@ def setup_wallet_commands(bot):
         await database.update_balance(str(giocatore.id),        cash=destinatario["cash"] + importo)
 
         embed = discord.Embed(
-            title="<a:money:1529617936707354644> 𝐏𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨 𝐄𝐟𝐟𝐞𝐭𝐭𝐮𝐚𝐭𝐨",
+            title="💸 𝐏𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨 𝐄𝐟𝐟𝐞𝐭𝐭𝐮𝐚𝐭𝐨",
             color=discord.Color(0x1E90FF),
             timestamp=discord.utils.utcnow()
         )
@@ -433,7 +509,7 @@ def setup_wallet_commands(bot):
 
         try:
             dm = discord.Embed(
-                title="<a:money:1529617936707354644> 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧 𝐩𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨!",
+                title="💵 𝐇𝐚𝐢 𝐫𝐢𝐜𝐞𝐯𝐮𝐭𝐨 𝐮𝐧 𝐩𝐚𝐠𝐚𝐦𝐞𝐧𝐭𝐨!",
                 description=(
                     f"**{interaction.user.display_name}** ti ha pagato **${importo:,}** in contanti."
                     + (f"\n📋 **Causale:** {causale}" if causale else "")
