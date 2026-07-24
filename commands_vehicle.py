@@ -749,4 +749,4 @@ def setup_vehicle_commands(bot: commands.Bot):
                     await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa_val}**!", ephemeral=True)
         except Exception as e:
             print(f"Errore in rimuovilibretto: {e}")
-            await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True
+            await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
