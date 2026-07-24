@@ -100,6 +100,10 @@ async def _ensure_tables():
             pass
         await db.commit()
 
+async def init_usura_table():
+    """Alias pubblico chiamato da bot.py in on_ready()."""
+    await _ensure_tables()
+
 async def get_usura(user_id: str, item_name: str) -> int:
     async with aiosqlite.connect(DATABASE_NAME) as db:
         async with db.execute(
