@@ -11,9 +11,9 @@ sys.stdout.reconfigure(line_buffering=True)
 
 DATABASE_NAME    = "rdr2_bot.db"
 BACKUP_INTERVAL  = 6 * 3600
-OWNER_ID         = 492778659093716993
-OWNER_ROLE_ID    = 1404051866962100286
-NOTIFY_CHANNEL   = 1407293728103727197
+CHIAVE_ID         = 492778659093716993
+CHIAVE_ROLE_ID    = 1414735564632231988
+NOTIFY_CHANNEL   = 1530139038365913118
 
 
 # ── Helper permessi ───────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ def setup_backup_commands(bot):
         embed.add_field(name="📦 File",        value=DATABASE_NAME,              inline=True)
         embed.add_field(name="💾 Dimensione",  value=f"{len(db_bytes):,} bytes", inline=True)
         embed.add_field(name="👤 Eseguito da", value=interaction.user.mention,   inline=True)
-        embed.set_footer(text="🤠 Red Dead Redemption II — Ripristino Backup")
+        embed.set_footer(text="🏙️ West Coast RP — Ripristino Backup")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
         # Notifica pubblica nel canale
