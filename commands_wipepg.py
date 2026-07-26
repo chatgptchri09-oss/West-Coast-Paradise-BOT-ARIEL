@@ -5,15 +5,28 @@ import aiosqlite
 from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff
 
 # ID ruolo autorizzato a usare /wipe-totale
-WIPE_TOTALE_ROLE_ID = 1404051860121456701
+WIPE_TOTALE_ROLE_ID = 1414736581842960526
+# ID ruolo autorizzato a usare /wipe-pg
+WIPE_PG_ROLE_ID      = 1414923114185490595
+# ID ruolo autorizzato a usare /wipe-item
+WIPE_ITEM_ROLE_ID    = 1414735564632231988
+
+
+def _has_role(interaction: discord.Interaction, role_id: int) -> bool:
+    return isinstance(interaction.user, discord.Member) and \
+           any(r.id == role_id for r in interaction.user.roles)
+
 
 def setup_wipepg_commands(bot: commands.Bot):
 
+    # ══════════════════════════════════════════════════════════════════════════
+    #  /wipe-pg
+    # ══════════════════════════════════════════════════════════════════════════
     @bot.tree.command(name="wipe-pg", description="[Staff] Resetta completamente tutti i dati di un utente")
     @app_commands.describe(utente="L'utente da resettare completamente")
     async def wipe_pg(interaction: discord.Interaction, utente: discord.Member):
-        if not has_staff(interaction):
-            await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
+        if not _has_role(interaction, WIPE_PG_ROLE_ID):
+            await interaction.response.send_message("❌ Non hai i permessi per usare questo comando.", ephemeral=True)
             return
         if utente.bot:
             await interaction.response.send_message("❌ Non puoi resettare un bot.", ephemeral=True)
@@ -52,16 +65,38 @@ def setup_wipepg_commands(bot: commands.Bot):
         await interaction.response.send_message(embed=confirm_embed, view=view, ephemeral=True)
 
     # ══════════════════════════════════════════════════════════════════════════
+    #  /wipe-item
+    # ══════════════════════════════════════════════════════════════════════════
+    @bot.tree.command(name="wipe-item", description="[Chiave] Svuota lo zaino di TUTTI gli utenti del server")
+    async def wipe_item(interaction: discord.Interaction):
+        if not _has_role(interaction, WIPE_ITEM_ROLE_ID):
+            await interaction.response.send_message("❌ Non hai i permessi per usare questo comando.", ephemeral=True)
+            return
+
+        confirm_embed = discord.Embed(
+            title="⚠️ ATTENZIONE — WIPE ZAINI",
+            description=(
+                "Stai per **SVUOTARE COMPLETAMENTE lo zaino di TUTTI gli utenti** del server!\n\n"
+                "⚠️ Questa operazione è **IRREVERSIBILE**."
+            ),
+            color=discord.Color.orange()
+        )
+        confirm_embed.add_field(
+            name="📋 Cosa verrà eliminato:",
+            value="• 🎒 **Tutti gli item nello zaino di ogni utente** (soldi, documenti, proprietà, ecc. NON vengono toccati)",
+            inline=False
+        )
+        confirm_embed.set_footer(text="🏙️ West Coast RP '93 — Solo chi ha la Chiave può eseguire questa azione")
+
+        view = WipeItemConfirmView(bot, interaction.user)
+        await interaction.response.send_message(embed=confirm_embed, view=view, ephemeral=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
     #  /wipe-totale
     # ══════════════════════════════════════════════════════════════════════════
     @bot.tree.command(name="wipe-totale", description="[OWNER] Resetta TUTTI gli utenti del server")
     async def wipe_totale(interaction: discord.Interaction):
-        has_role = (
-            isinstance(interaction.user, discord.Member) and
-            any(r.id == WIPE_TOTALE_ROLE_ID for r in interaction.user.roles)
-        )
-
-        if not has_role:
+        if not _has_role(interaction, WIPE_TOTALE_ROLE_ID):
             try:
                 ch = bot.get_channel(LOG_CHANNEL_ID)
                 if ch:
@@ -281,6 +316,80 @@ class WipeConfirmView(discord.ui.View):
         embed = discord.Embed(
             title="❌ Operazione annullata",
             description=f"Il wipe di {self.target_user.mention} è stato annullato.",
+            color=discord.Color.orange()
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        for item in self.children:
+            item.disabled = True
+        await interaction.message.edit(view=self)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  View conferma /wipe-item
+# ══════════════════════════════════════════════════════════════════════════════
+class WipeItemConfirmView(discord.ui.View):
+    def __init__(self, bot, admin_user: discord.Member):
+        super().__init__(timeout=60)
+        self.bot        = bot
+        self.admin_user = admin_user
+
+    @discord.ui.button(label="✅ Conferma", style=discord.ButtonStyle.danger)
+    async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.admin_user.id:
+            await interaction.response.send_message("❌ Solo chi ha eseguito il comando può confermare!", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        try:
+            async with aiosqlite.connect(DATABASE_NAME) as db:
+                r = await db.execute("DELETE FROM inventory")
+                rimossi = r.rowcount
+                await db.commit()
+
+            embed = discord.Embed(
+                title="✅ ZAINI SVUOTATI",
+                description=f"Sono stati rimossi **{rimossi}** item dagli zaini di tutti gli utenti.",
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.add_field(name="👮 Eseguito da", value=self.admin_user.mention, inline=True)
+            embed.set_footer(text="🏙️ West Coast RP '93 — Wipe Zaini")
+
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+            try:
+                ch = self.bot.get_channel(LOG_CHANNEL_ID)
+                if ch:
+                    log = discord.Embed(
+                        title="🗑️ LOG — Wipe Zaini (Tutti gli Utenti)",
+                        color=discord.Color.dark_red(),
+                        timestamp=discord.utils.utcnow()
+                    )
+                    log.add_field(name="👮 Eseguito da", value=self.admin_user.mention, inline=True)
+                    log.add_field(name="🎒 Item rimossi", value=str(rimossi), inline=True)
+                    await ch.send(embed=log)
+            except Exception:
+                pass
+
+            for item in self.children:
+                item.disabled = True
+            await interaction.message.edit(view=self)
+
+        except Exception as e:
+            await interaction.followup.send(f"❌ Errore durante il wipe: ```{e}```", ephemeral=True)
+            print(f"[wipe-item] Errore: {e}", flush=True)
+
+    @discord.ui.button(label="❌ Annulla", style=discord.ButtonStyle.secondary)
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.admin_user.id:
+            await interaction.response.send_message("❌ Solo chi ha eseguito il comando può annullare!", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="❌ Operazione annullata",
+            description="Nessuno zaino è stato toccato.",
             color=discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
