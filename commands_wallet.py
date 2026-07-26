@@ -45,7 +45,7 @@ class PortafoglioSelect(discord.ui.Select):
             discord.SelectOption(label="🎒 Zaino", value="zaino",
                                  description="Contenuto del tuo zaino e stato fisico"),
             discord.SelectOption(label="🏡 Proprietà", value="proprieta",
-                                 description="Le tue proprietà a Los Santos"),
+                                 description="Le tue proprietà a Blaine County"),
             discord.SelectOption(label="🚗 Libretti veicoli", value="libretti",
                                  description="I veicoli registrati a tuo nome"),
             discord.SelectOption(label="📄 Fatture", value="fatture",
@@ -73,7 +73,7 @@ class PortafoglioSelect(discord.ui.Select):
             label = "Documento d'Identità"
             doc = await database.get_document(user_id)
             embed = discord.Embed(
-                title="📜 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
+                title="<a:passaporto:1525964064134664372> 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭𝐨 𝐝'𝐈𝐝𝐞𝐧𝐭𝐢𝐭à",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
@@ -102,10 +102,10 @@ class PortafoglioSelect(discord.ui.Select):
             embed.add_field(name="🍔 Fame", value=_hunger_bar(user["hunger"]), inline=True)
             embed.add_field(name="💦 Sete", value=_hunger_bar(user["thirst"]), inline=True)
             if not items:
-                embed.add_field(name="📦 Contenuto", value="*Zaino vuoto.*", inline=False)
+                embed.add_field(name="<a:scatola:1529614295246045264> Contenuto", value="*Zaino vuoto.*", inline=False)
             else:
                 desc = "\n".join(f"**{i['item_name']}** — x{i['quantity']}" for i in items)
-                embed.add_field(name="📦 Contenuto", value=desc, inline=False)
+                embed.add_field(name="<a:scatola:1529614295246045264> Contenuto", value=desc, inline=False)
             embed.set_footer(text="🏙️ West Coast RP '93 — Zaino")
 
         elif val == "proprieta":
@@ -117,7 +117,7 @@ class PortafoglioSelect(discord.ui.Select):
                 timestamp=discord.utils.utcnow()
             )
             if not props:
-                embed.description = "*Non possiedi ancora nessuna proprietà a Los Santos.*"
+                embed.description = "*Non possiedi ancora nessuna proprietà a Blaine County.*"
             else:
                 for p in props:
                     embed.add_field(
@@ -206,7 +206,7 @@ class PortafoglioSelect(discord.ui.Select):
                 timestamp=discord.utils.utcnow()
             )
             if not lic:
-                embed.description = "*Non possiedi nessun porto d'armi. Contatta l'Armeria.*"
+                embed.description = "*Non possiedi nessun porto d'armi. Contatta il Dipartimento dello Sceriffato.*"
             else:
                 embed.add_field(name="👤 Titolare",          value=f"{lic['nome']} {lic['cognome']}", inline=True)
                 embed.add_field(name="🎂 Età",               value=str(lic["eta"]),                    inline=True)
