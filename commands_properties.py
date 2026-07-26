@@ -28,7 +28,7 @@ def setup_properties_commands(bot):
         cittadino="Il proprietario",
         nome="Nome della proprietà",
         tipo="Tipo di proprietà",
-        luogo="Ubicazione a Los Santos"
+        luogo="Ubicazione a Blaine County"
     )
     @app_commands.choices(tipo=PROPERTY_TYPES)
     async def dai_proprieta(
@@ -64,7 +64,7 @@ def setup_properties_commands(bot):
         except Exception:
             pass
 
-    @bot.tree.command(name="mie-proprieta", description="Visualizza le tue proprietà a Los Santos")
+    @bot.tree.command(name="mie-proprieta", description="Visualizza le tue proprietà a Blaine County")
     async def mie_proprieta(interaction: discord.Interaction):
         props = await database.get_properties(str(interaction.user.id))
         embed = discord.Embed(
@@ -74,7 +74,7 @@ def setup_properties_commands(bot):
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         if not props:
-            embed.description = "*Non possiedi ancora nessuna proprietà a Los Santos.*"
+            embed.description = "*Non possiedi ancora nessuna proprietà a Blaine County.*"
         else:
             for p in props:
                 embed.add_field(
