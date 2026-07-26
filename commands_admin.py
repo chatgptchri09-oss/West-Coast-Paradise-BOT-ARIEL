@@ -386,8 +386,8 @@ def setup_admin_commands(bot):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True); return
         embed = discord.Embed(
-            title=f"📜 {titolo}", description=messaggio,
-            color=discord.Color(0xDAA520), timestamp=discord.utils.utcnow()
+            title=f"<a:annuncio:1525967000768352306> **{titolo}** <a:annuncio:1525967000768352306>", description=messaggio,
+            color=discord.Color(0x39FF14), timestamp=discord.utils.utcnow()
         )
         embed.set_footer(text=f"Annuncio di {interaction.user.display_name} • 🏙️ West Coast RP")
         await interaction.channel.send(content="@everyone", embed=embed)
