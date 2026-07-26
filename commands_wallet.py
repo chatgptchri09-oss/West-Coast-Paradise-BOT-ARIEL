@@ -131,7 +131,7 @@ class PortafoglioSelect(discord.ui.Select):
             label = "Libretti Veicoli"
             vehicles = await database.get_vehicles_by_user(user_id)
             embed = discord.Embed(
-                title="🚗 𝐈 𝐭𝐮𝐨𝐢 𝐋𝐢𝐛𝐫𝐞𝐭𝐭𝐢",
+                title="<a:veicolo:1530846973475950652> 𝐈 𝐭𝐮𝐨𝐢 𝐋𝐢𝐛𝐫𝐞𝐭𝐭𝐢",
                 color=discord.Color(0x1E90FF),
                 timestamp=discord.utils.utcnow()
             )
