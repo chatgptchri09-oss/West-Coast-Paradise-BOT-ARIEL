@@ -51,8 +51,9 @@ _modules = [
     ("commands_deposits",        "setup_deposits_commands"),
     ("commands_gazzetta",        "setup_gazzetta_commands"),
     ("commands_marijuana",       "setup_marijuana_commands"),
-    ("commands_properties",        "setup_properties_commands"),
+    ("commands_property",        "setup_property_commands"),
     ("commands_vehicle",         "setup_vehicle_commands"),
+    ("commands_extra",           "setup_extra_commands"),
 ]
 
 _loaded = {}
@@ -107,7 +108,7 @@ async def on_ready():
 # ── /sync manuale (se serve rifarlo) ──────────────────────────────────────────
 @bot.tree.command(name="sync", description="[Owner] Sincronizza i comandi slash")
 async def sync(interaction: discord.Interaction):
-    if not has_role_id(interaction, CHIAVE_ROLE_ID):
+    if not has_role_id(interaction, STAFF_ROLE_ID):
         await interaction.response.send_message("❌ Solo i creatori del server.", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
