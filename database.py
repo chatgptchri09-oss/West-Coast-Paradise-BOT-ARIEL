@@ -142,6 +142,38 @@ async def init_db():
             )
         """)
         await db.execute("""
+            CREATE TABLE IF NOT EXISTS loans (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id       TEXT NOT NULL,
+                amount        INTEGER,
+                total_due     INTEGER,
+                paid_amount   INTEGER DEFAULT 0,
+                status        TEXT DEFAULT 'in_attesa',
+                approved_by   TEXT,
+                created_at    TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS evidence (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                titolo        TEXT,
+                descrizione   TEXT,
+                photo_url     TEXT,
+                submitted_by  TEXT,
+                created_at    TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS warrants (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id       TEXT NOT NULL,
+                reason        TEXT,
+                issued_by     TEXT,
+                active        INTEGER DEFAULT 1,
+                created_at    TEXT
+            )
+        """)
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS gun_licenses (
                 user_id       TEXT PRIMARY KEY,
                 nome          TEXT,
@@ -170,6 +202,9 @@ async def init_db():
             "ALTER TABLE vehicle_registrations ADD COLUMN illegal INTEGER DEFAULT 0",
             "ALTER TABLE vehicle_registrations ADD COLUMN registered_by TEXT",
             "ALTER TABLE vehicle_registrations ADD COLUMN created_at TEXT",
+            "ALTER TABLE vehicle_registrations ADD COLUMN rubato INTEGER DEFAULT 0",
+            "ALTER TABLE vehicle_registrations ADD COLUMN ultima_posizione TEXT",
+            "ALTER TABLE users ADD COLUMN ferito INTEGER DEFAULT 0",
         ]:
             try:
                 await db.execute(stmt)
@@ -791,3 +826,130 @@ async def delete_gun_license(user_id: str) -> bool:
         c = await db.execute("DELETE FROM gun_licenses WHERE user_id=?", (user_id,))
         await db.commit()
         return c.rowcount > 0
+
+
+# ── PRESTITI ──────────────────────────────────────────────────────────────────
+
+async def add_loan_request(user_id: str, amount: int, total_due: int) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO loans (user_id,amount,total_due,paid_amount,status,created_at) VALUES (?,?,?,0,'in_attesa',?)",
+            (user_id, amount, total_due, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+async def get_loan(loan_id: int) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM loans WHERE id=?", (loan_id,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def get_active_loan(user_id: str) -> dict | None:
+    """Ritorna il prestito attivo (approvato, non ancora saldato) dell'utente, se esiste."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM loans WHERE user_id=? AND status='attivo' ORDER BY id DESC LIMIT 1", (user_id,)
+        ) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def get_pending_loan(user_id: str) -> dict | None:
+    """Ritorna la richiesta di prestito in attesa di approvazione, se esiste."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM loans WHERE user_id=? AND status='in_attesa' ORDER BY id DESC LIMIT 1", (user_id,)
+        ) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def update_loan_status(loan_id: int, status: str, approved_by: str = None):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        if approved_by is not None:
+            await db.execute("UPDATE loans SET status=?, approved_by=? WHERE id=?", (status, approved_by, loan_id))
+        else:
+            await db.execute("UPDATE loans SET status=? WHERE id=?", (status, loan_id))
+        await db.commit()
+
+async def pay_loan(loan_id: int, importo: int) -> dict:
+    """Registra un pagamento sul prestito. Ritorna il record aggiornato."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM loans WHERE id=?", (loan_id,)) as c:
+            row = await c.fetchone()
+        loan = dict(row)
+        nuovo_pagato = loan["paid_amount"] + importo
+        nuovo_status = "saldato" if nuovo_pagato >= loan["total_due"] else "attivo"
+        await db.execute(
+            "UPDATE loans SET paid_amount=?, status=? WHERE id=?",
+            (nuovo_pagato, nuovo_status, loan_id)
+        )
+        await db.commit()
+        loan["paid_amount"] = nuovo_pagato
+        loan["status"] = nuovo_status
+        return loan
+
+
+# ── DEPOSITO PROVE ────────────────────────────────────────────────────────────
+
+async def add_evidence(titolo: str, descrizione: str, photo_url: str, submitted_by: str) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO evidence (titolo,descrizione,photo_url,submitted_by,created_at) VALUES (?,?,?,?,?)",
+            (titolo, descrizione, photo_url, submitted_by, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+
+# ── MANDATI DI CATTURA ────────────────────────────────────────────────────────
+
+async def add_warrant(user_id: str, reason: str, issued_by: str) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO warrants (user_id,reason,issued_by,active,created_at) VALUES (?,?,?,1,?)",
+            (user_id, reason, issued_by, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+async def get_active_warrants(user_id: str) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM warrants WHERE user_id=? AND active=1 ORDER BY id DESC", (user_id,)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+
+# ── VEICOLI — vendita/furto/tracciamento ──────────────────────────────────────
+
+async def transfer_vehicle(plate: str, new_user_id: str, new_name: str, new_surname: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute(
+            "UPDATE vehicle_registrations SET user_id=?, client_name=?, client_surname=? WHERE plate=?",
+            (new_user_id, new_name, new_surname, plate)
+        )
+        await db.commit()
+
+async def set_vehicle_stolen(plate: str, rubato: bool, posizione: str = ""):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute(
+            "UPDATE vehicle_registrations SET rubato=?, ultima_posizione=? WHERE plate=?",
+            (1 if rubato else 0, posizione, plate)
+        )
+        await db.commit()
+
+
+# ── STATO SALUTE (ferito) ─────────────────────────────────────────────────────
+
+async def set_ferito(user_id: str, valore: bool):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE users SET ferito=? WHERE user_id=?", (1 if valore else 0, user_id))
+        await db.commit()
