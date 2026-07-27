@@ -40,7 +40,7 @@ def setup_wipepg_commands(bot: commands.Bot):
         confirm_embed.add_field(
             name="📋 Cosa verrà eliminato:",
             value=(
-                "• 💰 **Soldi** (reset a $50 in contanti)\n"
+                "• 💰 **Soldi** (reset a $1000 in contanti)\n"
                 "• 🎒 **Zaino** (tutto)\n"
                 "• 📄 **Documenti** (tutti)\n"
                 "• 🏠 **Proprietà** (tutte)\n"
