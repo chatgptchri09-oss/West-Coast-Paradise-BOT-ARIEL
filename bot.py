@@ -53,7 +53,6 @@ _modules = [
     ("commands_marijuana",       "setup_marijuana_commands"),
     ("commands_property",        "setup_property_commands"),
     ("commands_vehicle",         "setup_vehicle_commands"),
-    ("commands_extra",           "setup_extra_commands"),
 ]
 
 _loaded = {}
