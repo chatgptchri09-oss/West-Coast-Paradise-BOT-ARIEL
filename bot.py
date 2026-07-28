@@ -53,6 +53,7 @@ _modules = [
     ("commands_marijuana",       "setup_marijuana_commands"),
     ("commands_property",        "setup_property_commands"),
     ("commands_vehicle",         "setup_vehicle_commands"),
+    ("commands_phone",           "setup_phone_commands"),
 ]
 
 _loaded = {}
@@ -83,6 +84,12 @@ async def on_ready():
         asyncio.create_task(task_usura_giornaliera(bot))
     except Exception as e:
         print(f"⚠️ Usura: {e}", flush=True)
+
+    try:
+        from commands_phone import task_bolletta_periodica
+        asyncio.create_task(task_bolletta_periodica(bot))
+    except Exception as e:
+        print(f"⚠️ Telefono: {e}", flush=True)
 
     await database.init_hidden_items_table()
 
