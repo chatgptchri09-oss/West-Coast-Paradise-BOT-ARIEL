@@ -76,7 +76,6 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         self.foto    = foto
 
     async def on_submit(self, interaction: discord.Interaction):
-        # ── Validazione ───────────────────────────────────────────────────────
         try:
             prezzo_val = int(self.prezzo.value.replace(",", "").replace("$", "").strip())
             if prezzo_val < 0:
@@ -96,7 +95,6 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         colore_val = self.colore.value.strip()
         targa_val  = self.targa.value.strip().upper()
 
-        # Controllo targa duplicata
         esistente = await database.get_vehicle_by_plate(targa_val)
         if esistente:
             await interaction.response.send_message(
@@ -140,7 +138,6 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         embed.set_image(url=self.foto.url)
         embed.set_footer(text=f"🏙️ West Coast RP '93 — Libretto #{veh_id}")
 
-        # ── Canale libretto ───────────────────────────────────────────────────
         try:
             canale = self.bot.get_channel(canale_id)
             if canale:
@@ -148,7 +145,6 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
         except Exception:
             pass
 
-        # ── DM al cliente ─────────────────────────────────────────────────────
         try:
             dm = discord.Embed(
                 title="🚗 Hai ricevuto un nuovo veicolo!",
@@ -171,7 +167,6 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
             f"✅ Veicolo registrato con successo a {self.cliente.mention}! (Libretto #{veh_id})", ephemeral=True
         )
 
-        # ── Log ───────────────────────────────────────────────────────────────
         try:
             ch = self.bot.get_channel(LOG_CHANNEL_ID)
             if ch:
@@ -185,7 +180,7 @@ class LibrettoModal(discord.ui.Modal, title="🚗 𝐑𝐞𝐠𝐢𝐬𝐭𝐫�
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  VIEW — Bottoni sotto l'embed di /controllatarga
+#  VIEW — Bottoni sotto l'embed di /veicoli targa
 # ══════════════════════════════════════════════════════════════════════════════
 class ControlloTargaView(discord.ui.View):
     def __init__(self, target_user_id: str, target_display: str):
@@ -298,7 +293,6 @@ class CertificatoMedicoModal(discord.ui.Modal, title="🩺 𝐂𝐞𝐫𝐭𝐢�
 
         await interaction.response.send_message(embed=embed)
 
-        # ── Registro certificati medici ──────────────────────────────────────
         try:
             reg_ch = self.bot.get_channel(REGISTRO_CERTIFICATI_MEDICI_CH)
             if reg_ch:
@@ -306,7 +300,6 @@ class CertificatoMedicoModal(discord.ui.Modal, title="🩺 𝐂𝐞𝐫𝐭𝐢�
         except Exception:
             pass
 
-        # ── DM al paziente ────────────────────────────────────────────────────
         try:
             dm = discord.Embed(
                 title="🩺 Hai ricevuto un certificato medico!",
@@ -383,7 +376,6 @@ class PortoArmiModal(discord.ui.Modal, title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'�
 
         await interaction.response.send_message(embed=embed)
 
-        # ── Registro porto d'armi ────────────────────────────────────────────
         try:
             reg_ch = self.bot.get_channel(REGISTRO_PORTODARMI_CH)
             if reg_ch:
@@ -391,7 +383,6 @@ class PortoArmiModal(discord.ui.Modal, title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'�
         except Exception:
             pass
 
-        # ── DM al richiedente ─────────────────────────────────────────────────
         try:
             dm = discord.Embed(
                 title="🔫 Hai ricevuto il porto d'armi!",
@@ -417,22 +408,22 @@ class PortoArmiModal(discord.ui.Modal, title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'�
             pass
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  GRUPPO /veicoli — tutti i comandi accorpati in 1 solo comando registrato
+# ══════════════════════════════════════════════════════════════════════════════
+veicoli_group = app_commands.Group(
+    name="veicoli",
+    description="Gestione veicoli: libretti, targhe, certificati, porto d'armi"
+)
+
+
 def setup_vehicle_commands(bot: commands.Bot):
 
-    # ── /dai-libretto ────────────────────────────────────────────────────────
-    @bot.tree.command(name="dai-libretto", description="[Concessionario] Registra un veicolo a un cliente")
-    @app_commands.describe(
-        utente="Il cliente a cui registrare il veicolo",
-        tipo="Tipo di veicolo",
-        foto_veicolo="Foto del veicolo"
-    )
+    # ── /veicoli dai-libretto ────────────────────────────────────────────────
+    @veicoli_group.command(name="dai-libretto", description="[Concessionario] Registra un veicolo a un cliente")
+    @app_commands.describe(utente="Il cliente a cui registrare il veicolo", tipo="Tipo di veicolo", foto_veicolo="Foto del veicolo")
     @app_commands.choices(tipo=TIPO_VEICOLO_CHOICES)
-    async def dai_libretto(
-        interaction: discord.Interaction,
-        utente: discord.Member,
-        tipo: str,
-        foto_veicolo: discord.Attachment
-    ):
+    async def dai_libretto(interaction: discord.Interaction, utente: discord.Member, tipo: str, foto_veicolo: discord.Attachment):
         if not has_role(interaction, CONCESSIONARIO_ROLE_ID):
             await interaction.response.send_message("❌ Solo il Concessionario può usare questo comando!", ephemeral=True)
             return
@@ -446,10 +437,10 @@ def setup_vehicle_commands(bot: commands.Bot):
         modal = LibrettoModal(bot, utente, tipo, foto_veicolo)
         await interaction.response.send_modal(modal)
 
-    # ── /dai-certificato-medico ──────────────────────────────────────────────
-    @bot.tree.command(name="dai-certificato-medico", description="[Servizi Medici] Rilascia un certificato medico")
+    # ── /veicoli certificato-medico ──────────────────────────────────────────
+    @veicoli_group.command(name="certificato-medico", description="[Servizi Medici] Rilascia un certificato medico")
     @app_commands.describe(utente="Il paziente a cui rilasciare il certificato")
-    async def dai_certificato_medico(interaction: discord.Interaction, utente: discord.Member):
+    async def certificato_medico(interaction: discord.Interaction, utente: discord.Member):
         if not has_role(interaction, DOTTORE_ROLE_ID):
             await interaction.response.send_message("❌ Solo i Servizi Medici possono usare questo comando!", ephemeral=True)
             return
@@ -460,10 +451,10 @@ def setup_vehicle_commands(bot: commands.Bot):
         modal = CertificatoMedicoModal(bot, utente)
         await interaction.response.send_modal(modal)
 
-    # ── /rimuovi-certificato-medico ──────────────────────────────────────────
-    @bot.tree.command(name="rimuovi-certificato-medico", description="[Staff] Rimuovi un certificato medico")
+    # ── /veicoli rimuovi-certificato ─────────────────────────────────────────
+    @veicoli_group.command(name="rimuovi-certificato", description="[Staff] Rimuovi un certificato medico")
     @app_commands.describe(utente="L'utente a cui rimuovere il certificato")
-    async def rimuovi_certificato_medico(interaction: discord.Interaction, utente: discord.Member):
+    async def rimuovi_certificato(interaction: discord.Interaction, utente: discord.Member):
         if not has_staff(interaction):
             await interaction.response.send_message("❌ Solo lo Staff può usare questo comando!", ephemeral=True)
             return
@@ -485,10 +476,10 @@ def setup_vehicle_commands(bot: commands.Bot):
         except Exception:
             pass
 
-    # ── /dai-portodarmi ──────────────────────────────────────────────────────
-    @bot.tree.command(name="dai-portodarmi", description="[Armeria] Rilascia un porto d'armi")
+    # ── /veicoli portodarmi ──────────────────────────────────────────────────
+    @veicoli_group.command(name="portodarmi", description="[Armeria] Rilascia un porto d'armi")
     @app_commands.describe(utente="Il richiedente a cui rilasciare il porto d'armi")
-    async def dai_portodarmi(interaction: discord.Interaction, utente: discord.Member):
+    async def portodarmi(interaction: discord.Interaction, utente: discord.Member):
         if not has_role(interaction, ARMERIA_ROLE_ID):
             await interaction.response.send_message("❌ Solo l'Armeria può usare questo comando!", ephemeral=True)
             return
@@ -499,8 +490,8 @@ def setup_vehicle_commands(bot: commands.Bot):
         modal = PortoArmiModal(bot, utente)
         await interaction.response.send_modal(modal)
 
-    # ── /rimuovi-portodarmi ───────────────────────────────────────────────────
-    @bot.tree.command(name="rimuovi-portodarmi", description="[Staff/FDO] Rimuovi un porto d'armi")
+    # ── /veicoli rimuovi-portodarmi ──────────────────────────────────────────
+    @veicoli_group.command(name="rimuovi-portodarmi", description="[Staff/FDO] Rimuovi un porto d'armi")
     @app_commands.describe(utente="L'utente a cui rimuovere il porto d'armi")
     async def rimuovi_portodarmi(interaction: discord.Interaction, utente: discord.Member):
         if not has_staff(interaction) and not has_sceriffo(interaction):
@@ -524,10 +515,10 @@ def setup_vehicle_commands(bot: commands.Bot):
         except Exception:
             pass
 
-    # ── /controllatarga ──────────────────────────────────────────────────────
-    @bot.tree.command(name="controllatarga", description="[LFD] Controlla la targa di un veicolo")
+    # ── /veicoli targa ───────────────────────────────────────────────────────
+    @veicoli_group.command(name="targa", description="[LFD] Controlla la targa di un veicolo")
     @app_commands.describe(targa="La targa del veicolo da controllare")
-    async def controllatarga(interaction: discord.Interaction, targa: str):
+    async def targa_cmd(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
             await interaction.response.send_message("❌ Solo i LFD possono usare questo comando!", ephemeral=True)
             return
@@ -536,17 +527,13 @@ def setup_vehicle_commands(bot: commands.Bot):
 
         try:
             vehicle = await database.get_vehicle_by_plate(targa.strip().upper())
-
             if not vehicle:
                 await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa}**!", ephemeral=True)
                 return
 
             proprietario_label = f"{vehicle['client_name']} {vehicle['client_surname']}".strip()
 
-            embed = discord.Embed(
-                title=f"🚗 CONTROLLO TARGA: {vehicle['plate']}",
-                color=discord.Color.blue()
-            )
+            embed = discord.Embed(title=f"🚗 CONTROLLO TARGA: {vehicle['plate']}", color=discord.Color.blue())
             embed.add_field(name="👤 Proprietario", value=f"{proprietario_label} (<@{vehicle['user_id']}>)", inline=False)
             embed.add_field(name="🚙 Veicolo", value=f"{vehicle.get('vehicle_brand','')} {vehicle['vehicle_model']}".strip(), inline=True)
             embed.add_field(name="🎨 Colore", value=vehicle.get("vehicle_color") or "N/D", inline=True)
@@ -556,8 +543,6 @@ def setup_vehicle_commands(bot: commands.Bot):
             embed.add_field(name="🔧 Modifiche", value=vehicle['modifications'] if vehicle['modifications'] and vehicle['modifications'] != "/////" else "Nessuna", inline=False)
 
             stato_text = "⚠️ SEQUESTRATO" if vehicle['seized'] else "✅ Regolare"
-            if vehicle.get('illegal'):
-                stato_text += " 🏴‍☠️ (ILLEGALE)"
             embed.add_field(name="🚨 Stato", value=stato_text, inline=False)
             if vehicle.get("photo_url"):
                 embed.set_thumbnail(url=vehicle["photo_url"])
@@ -572,11 +557,11 @@ def setup_vehicle_commands(bot: commands.Bot):
             log_embed.timestamp = discord.utils.utcnow()
             await log_command(bot, LOG_CHANNEL_ID, embed=log_embed)
         except Exception as e:
-            print(f"Errore in controllatarga: {e}")
+            print(f"Errore in veicoli targa: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
-    # ── /assicurazione ───────────────────────────────────────────────────────
-    @bot.tree.command(name="assicurazione", description="[OFFICINA] Gestisci l'assicurazione di un veicolo")
+    # ── /veicoli assicurazione ───────────────────────────────────────────────
+    @veicoli_group.command(name="assicurazione", description="[OFFICINA] Gestisci l'assicurazione di un veicolo")
     @app_commands.describe(targa="La targa del veicolo", stato="Aggiungi o rimuovi l'assicurazione")
     @app_commands.choices(stato=[
         app_commands.Choice(name="Aggiungi", value="aggiungi"),
@@ -588,7 +573,6 @@ def setup_vehicle_commands(bot: commands.Bot):
             return
 
         await interaction.response.defer(ephemeral=True)
-
         try:
             targa_val = targa.strip().upper()
             vehicle = await database.get_vehicle_by_plate(targa_val)
@@ -613,19 +597,18 @@ def setup_vehicle_commands(bot: commands.Bot):
             log_embed.timestamp = discord.utils.utcnow()
             await log_command(bot, LOG_CHANNEL_MODIFICHE_ID, embed=log_embed)
         except Exception as e:
-            print(f"Errore in assicurazione: {e}")
+            print(f"Errore in veicoli assicurazione: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
-    # ── /modificaveicolo ─────────────────────────────────────────────────────
-    @bot.tree.command(name="modificaveicolo", description="[OFFICINA] Modifica un veicolo")
+    # ── /veicoli modifica ─────────────────────────────────────────────────────
+    @veicoli_group.command(name="modifica", description="[OFFICINA] Modifica un veicolo")
     @app_commands.describe(targa="La targa del veicolo", modifiche="Le modifiche applicate al veicolo")
-    async def modificaveicolo(interaction: discord.Interaction, targa: str, modifiche: str):
+    async def modifica(interaction: discord.Interaction, targa: str, modifiche: str):
         if not has_role(interaction, OFFICINA_ROLE_ID):
             await interaction.response.send_message("❌ Solo l'Officina può usare questo comando!", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
         try:
             targa_val = targa.strip().upper()
             vehicle = await database.get_vehicle_by_plate(targa_val)
@@ -646,19 +629,18 @@ def setup_vehicle_commands(bot: commands.Bot):
             log_embed.timestamp = discord.utils.utcnow()
             await log_command(bot, LOG_CHANNEL_MODIFICHE_ID, embed=log_embed)
         except Exception as e:
-            print(f"Errore in modificaveicolo: {e}")
+            print(f"Errore in veicoli modifica: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
-    # ── /sequestraveicolo ────────────────────────────────────────────────────
-    @bot.tree.command(name="sequestraveicolo", description="[LFD] Sequestra un veicolo")
+    # ── /veicoli sequestra ────────────────────────────────────────────────────
+    @veicoli_group.command(name="sequestra", description="[LFD] Sequestra un veicolo")
     @app_commands.describe(targa="La targa del veicolo da sequestrare")
-    async def sequestraveicolo(interaction: discord.Interaction, targa: str):
+    async def sequestra(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
             await interaction.response.send_message("❌ Solo i LFD possono usare questo comando!", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
         try:
             targa_val = targa.strip().upper()
             vehicle = await database.get_vehicle_by_plate(targa_val)
@@ -682,19 +664,18 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send(f"✅ Veicolo con targa **{targa_val}** sequestrato!", ephemeral=True)
             await log_command(bot, VEHICLE_LOG_CHANNEL_ID, embed=embed)
         except Exception as e:
-            print(f"Errore in sequestraveicolo: {e}")
+            print(f"Errore in veicoli sequestra: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
-    # ── /dissequestraveicolo ─────────────────────────────────────────────────
-    @bot.tree.command(name="dissequestraveicolo", description="[LFD] Rimuovi il sequestro da un veicolo")
+    # ── /veicoli dissequestra ─────────────────────────────────────────────────
+    @veicoli_group.command(name="dissequestra", description="[LFD] Rimuovi il sequestro da un veicolo")
     @app_commands.describe(targa="La targa del veicolo da dissequestrare")
-    async def dissequestraveicolo(interaction: discord.Interaction, targa: str):
+    async def dissequestra(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
             await interaction.response.send_message("❌ Solo i LFD possono usare questo comando!", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
         try:
             targa_val = targa.strip().upper()
             vehicle = await database.get_vehicle_by_plate(targa_val)
@@ -718,19 +699,18 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send(f"✅ Sequestro rimosso dal veicolo con targa **{targa_val}**!", ephemeral=True)
             await log_command(bot, VEHICLE_LOG_CHANNEL_ID, embed=embed)
         except Exception as e:
-            print(f"Errore in dissequestraveicolo: {e}")
+            print(f"Errore in veicoli dissequestra: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
-    # ── /rimuovilibretto ─────────────────────────────────────────────────────
-    @bot.tree.command(name="rimuovilibretto", description="[LFD] Rimuovi un libretto di circolazione")
+    # ── /veicoli rimuovi-libretto ─────────────────────────────────────────────
+    @veicoli_group.command(name="rimuovi-libretto", description="[LFD] Rimuovi un libretto di circolazione")
     @app_commands.describe(targa="La targa del veicolo")
-    async def rimuovilibretto(interaction: discord.Interaction, targa: str):
+    async def rimuovi_libretto(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
             await interaction.response.send_message("❌ Solo i LFD possono usare questo comando!", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
         try:
             targa_val = targa.strip().upper()
             async with aiosqlite.connect(DATABASE_NAME) as db:
@@ -748,5 +728,8 @@ def setup_vehicle_commands(bot: commands.Bot):
                 else:
                     await interaction.followup.send(f"❌ Nessun veicolo trovato con la targa **{targa_val}**!", ephemeral=True)
         except Exception as e:
-            print(f"Errore in rimuovilibretto: {e}")
+            print(f"Errore in veicoli rimuovi-libretto: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
+
+    # ── Registrazione gruppo (1 solo comando verso il limite di 100) ──────────
+    bot.tree.add_command(veicoli_group)
