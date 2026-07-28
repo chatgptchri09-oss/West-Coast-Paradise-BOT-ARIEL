@@ -791,3 +791,290 @@ async def delete_gun_license(user_id: str) -> bool:
         c = await db.execute("DELETE FROM gun_licenses WHERE user_id=?", (user_id,))
         await db.commit()
         return c.rowcount > 0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TELEFONO RP '93
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def init_phone_tables():
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phones (
+                user_id     TEXT PRIMARY KEY,
+                numero      TEXT UNIQUE NOT NULL,
+                acceso      INTEGER DEFAULT 1,
+                silenzioso  INTEGER DEFAULT 0,
+                suoneria    TEXT DEFAULT 'Classica',
+                batteria    INTEGER DEFAULT 100,
+                created_at  TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phone_contacts (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id   TEXT NOT NULL,
+                numero     TEXT NOT NULL,
+                nome       TEXT NOT NULL,
+                UNIQUE(owner_id, numero)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phone_calls (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id     TEXT NOT NULL,
+                numero_altro TEXT NOT NULL,
+                nome_altro   TEXT,
+                tipo         TEXT NOT NULL,
+                created_at   TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phone_sms (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                mittente_numero TEXT NOT NULL,
+                mittente_id     TEXT NOT NULL,
+                dest_numero     TEXT NOT NULL,
+                dest_id         TEXT NOT NULL,
+                testo           TEXT NOT NULL,
+                created_at      TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phone_bills (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     TEXT NOT NULL,
+                importo     INTEGER NOT NULL,
+                pagata      INTEGER DEFAULT 0,
+                created_at  TEXT
+            )
+        """)
+        await db.commit()
+
+
+# ── Numero / attivazione ──────────────────────────────────────────────────────
+
+async def get_phone(user_id: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM phones WHERE user_id=?", (user_id,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def get_phone_by_number(numero: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM phones WHERE numero=?", (numero,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+async def create_phone(user_id: str, numero: str) -> bool:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        try:
+            await db.execute(
+                "INSERT INTO phones (user_id,numero,acceso,silenzioso,suoneria,batteria,created_at) VALUES (?,?,1,0,'Classica',100,?)",
+                (user_id, numero, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+            )
+            await db.commit()
+            return True
+        except Exception:
+            return False
+
+async def set_phone_power(user_id: str, acceso: bool):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE phones SET acceso=? WHERE user_id=?", (1 if acceso else 0, user_id))
+        await db.commit()
+
+async def set_phone_silenzioso(user_id: str, silenzioso: bool):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE phones SET silenzioso=? WHERE user_id=?", (1 if silenzioso else 0, user_id))
+        await db.commit()
+
+async def set_phone_suoneria(user_id: str, suoneria: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE phones SET suoneria=? WHERE user_id=?", (suoneria, user_id))
+        await db.commit()
+
+async def adjust_battery(user_id: str, delta: int) -> int:
+    """Modifica la batteria di delta punti (può essere negativo). Ritorna il nuovo valore."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT batteria FROM phones WHERE user_id=?", (user_id,)) as c:
+            row = await c.fetchone()
+            if not row:
+                return 0
+            nuova = max(0, min(100, row["batteria"] + delta))
+        await db.execute("UPDATE phones SET batteria=? WHERE user_id=?", (nuova, user_id))
+        await db.commit()
+        return nuova
+
+async def recharge_battery(user_id: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE phones SET batteria=100 WHERE user_id=?", (user_id,))
+        await db.commit()
+
+
+# ── Rubrica ───────────────────────────────────────────────────────────────────
+
+async def add_contact(owner_id: str, numero: str, nome: str) -> bool:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        try:
+            await db.execute(
+                "INSERT INTO phone_contacts (owner_id,numero,nome) VALUES (?,?,?)",
+                (owner_id, numero, nome)
+            )
+            await db.commit()
+            return True
+        except Exception:
+            return False
+
+async def update_contact(owner_id: str, numero: str, nuovo_nome: str) -> bool:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "UPDATE phone_contacts SET nome=? WHERE owner_id=? AND numero=?",
+            (nuovo_nome, owner_id, numero)
+        )
+        await db.commit()
+        return c.rowcount > 0
+
+async def delete_contact(owner_id: str, numero: str) -> bool:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute("DELETE FROM phone_contacts WHERE owner_id=? AND numero=?", (owner_id, numero))
+        await db.commit()
+        return c.rowcount > 0
+
+async def get_contacts(owner_id: str) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM phone_contacts WHERE owner_id=? ORDER BY nome ASC", (owner_id,)) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+async def get_contact_name(owner_id: str, numero: str) -> str | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute(
+            "SELECT nome FROM phone_contacts WHERE owner_id=? AND numero=?", (owner_id, numero)
+        ) as c:
+            row = await c.fetchone()
+            return row[0] if row else None
+
+
+# ── Registro chiamate ─────────────────────────────────────────────────────────
+
+async def log_call(owner_id: str, numero_altro: str, nome_altro: str, tipo: str):
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute(
+            "INSERT INTO phone_calls (owner_id,numero_altro,nome_altro,tipo,created_at) VALUES (?,?,?,?,?)",
+            (owner_id, numero_altro, nome_altro, tipo, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+
+async def get_call_log(owner_id: str, limit: int = 15) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM phone_calls WHERE owner_id=? ORDER BY id DESC LIMIT ?", (owner_id, limit)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+async def clear_call_log(owner_id: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("DELETE FROM phone_calls WHERE owner_id=?", (owner_id,))
+        await db.commit()
+
+
+# ── SMS ───────────────────────────────────────────────────────────────────────
+
+async def send_sms(mittente_numero: str, mittente_id: str, dest_numero: str, dest_id: str, testo: str) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO phone_sms (mittente_numero,mittente_id,dest_numero,dest_id,testo,created_at) VALUES (?,?,?,?,?,?)",
+            (mittente_numero, mittente_id, dest_numero, dest_id, testo, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+async def get_conversation(owner_id: str, altro_numero: str, limit: int = 20) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT * FROM phone_sms
+            WHERE (mittente_id=? AND dest_numero=?) OR (dest_id=? AND mittente_numero=?)
+            ORDER BY id DESC LIMIT ?
+        """, (owner_id, altro_numero, owner_id, altro_numero, limit)) as c:
+            rows = [dict(r) for r in await c.fetchall()]
+            return list(reversed(rows))
+
+async def get_conversation_partners(owner_id: str) -> list:
+    """Ritorna la lista dei numeri con cui l'utente ha scambiato SMS."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute("""
+            SELECT DISTINCT dest_numero FROM phone_sms WHERE mittente_id=?
+            UNION
+            SELECT DISTINCT mittente_numero FROM phone_sms WHERE dest_id=?
+        """, (owner_id, owner_id)) as c:
+            return [r[0] for r in await c.fetchall()]
+
+async def delete_conversation(owner_id: str, altro_numero: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute(
+            "DELETE FROM phone_sms WHERE (mittente_id=? AND dest_numero=?) OR (dest_id=? AND mittente_numero=?)",
+            (owner_id, altro_numero, owner_id, altro_numero)
+        )
+        await db.commit()
+
+
+# ── Bolletta ──────────────────────────────────────────────────────────────────
+
+async def add_bill(user_id: str, importo: int) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO phone_bills (user_id,importo,pagata,created_at) VALUES (?,?,0,?)",
+            (user_id, importo, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+async def get_unpaid_bills(user_id: str) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM phone_bills WHERE user_id=? AND pagata=0 ORDER BY id ASC", (user_id,)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+async def pay_bill(bill_id: int):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE phone_bills SET pagata=1 WHERE id=?", (bill_id,))
+        await db.commit()
+
+async def get_all_phone_owners() -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute("SELECT user_id FROM phones") as c:
+            return [r[0] for r in await c.fetchall()]
+
+async def count_usage_since(user_id: str, since_id_calls: int, since_id_sms: int) -> tuple[int, int]:
+    """Conta chiamate e SMS effettuati dopo un certo ID (per calcolo bolletta)."""
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM phone_calls WHERE owner_id=? AND id>? AND tipo='effettuata'", (user_id, since_id_calls)
+        ) as c:
+            n_calls = (await c.fetchone())[0]
+        async with db.execute(
+            "SELECT COUNT(*) FROM phone_sms WHERE mittente_id=? AND id>?", (user_id, since_id_sms)
+        ) as c:
+            n_sms = (await c.fetchone())[0]
+        return n_calls, n_sms
+
+async def get_max_call_id() -> int:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute("SELECT COALESCE(MAX(id),0) FROM phone_calls") as c:
+            return (await c.fetchone())[0]
+
+async def get_max_sms_id() -> int:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        async with db.execute("SELECT COALESCE(MAX(id),0) FROM phone_sms") as c:
+            return (await c.fetchone())[0]
