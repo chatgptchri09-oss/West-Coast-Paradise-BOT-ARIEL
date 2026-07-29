@@ -408,19 +408,10 @@ class PortoArmiModal(discord.ui.Modal, title="🔫 𝐏𝐨𝐫𝐭𝐨 𝐝'�
             pass
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  GRUPPO /veicoli — tutti i comandi accorpati in 1 solo comando registrato
-# ══════════════════════════════════════════════════════════════════════════════
-veicoli_group = app_commands.Group(
-    name="veicoli",
-    description="Gestione veicoli: libretti, targhe, certificati, porto d'armi"
-)
-
-
 def setup_vehicle_commands(bot: commands.Bot):
 
     # ── /veicoli dai-libretto ────────────────────────────────────────────────
-    @veicoli_group.command(name="dai-libretto", description="[Concessionario] Registra un veicolo a un cliente")
+    @bot.tree.command(name="dai-libretto", description="[Concessionario] Registra un veicolo a un cliente")
     @app_commands.describe(utente="Il cliente a cui registrare il veicolo", tipo="Tipo di veicolo", foto_veicolo="Foto del veicolo")
     @app_commands.choices(tipo=TIPO_VEICOLO_CHOICES)
     async def dai_libretto(interaction: discord.Interaction, utente: discord.Member, tipo: str, foto_veicolo: discord.Attachment):
@@ -438,7 +429,7 @@ def setup_vehicle_commands(bot: commands.Bot):
         await interaction.response.send_modal(modal)
 
     # ── /veicoli certificato-medico ──────────────────────────────────────────
-    @veicoli_group.command(name="certificato-medico", description="[Servizi Medici] Rilascia un certificato medico")
+    @bot.tree.command(name="dai-certificato-medico", description="[Servizi Medici] Rilascia un certificato medico")
     @app_commands.describe(utente="Il paziente a cui rilasciare il certificato")
     async def certificato_medico(interaction: discord.Interaction, utente: discord.Member):
         if not has_role(interaction, DOTTORE_ROLE_ID):
@@ -452,7 +443,7 @@ def setup_vehicle_commands(bot: commands.Bot):
         await interaction.response.send_modal(modal)
 
     # ── /veicoli rimuovi-certificato ─────────────────────────────────────────
-    @veicoli_group.command(name="rimuovi-certificato", description="[Staff] Rimuovi un certificato medico")
+    @bot.tree.command(name="rimuovi-certificato-medico", description="[Staff] Rimuovi un certificato medico")
     @app_commands.describe(utente="L'utente a cui rimuovere il certificato")
     async def rimuovi_certificato(interaction: discord.Interaction, utente: discord.Member):
         if not has_staff(interaction):
@@ -477,7 +468,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             pass
 
     # ── /veicoli portodarmi ──────────────────────────────────────────────────
-    @veicoli_group.command(name="portodarmi", description="[Armeria] Rilascia un porto d'armi")
+    @bot.tree.command(name="dai-portodarmi", description="[Armeria] Rilascia un porto d'armi")
     @app_commands.describe(utente="Il richiedente a cui rilasciare il porto d'armi")
     async def portodarmi(interaction: discord.Interaction, utente: discord.Member):
         if not has_role(interaction, ARMERIA_ROLE_ID):
@@ -491,7 +482,7 @@ def setup_vehicle_commands(bot: commands.Bot):
         await interaction.response.send_modal(modal)
 
     # ── /veicoli rimuovi-portodarmi ──────────────────────────────────────────
-    @veicoli_group.command(name="rimuovi-portodarmi", description="[Staff/FDO] Rimuovi un porto d'armi")
+    @bot.tree.command(name="rimuovi-portodarmi", description="[Staff/FDO] Rimuovi un porto d'armi")
     @app_commands.describe(utente="L'utente a cui rimuovere il porto d'armi")
     async def rimuovi_portodarmi(interaction: discord.Interaction, utente: discord.Member):
         if not has_staff(interaction) and not has_sceriffo(interaction):
@@ -516,7 +507,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             pass
 
     # ── /veicoli targa ───────────────────────────────────────────────────────
-    @veicoli_group.command(name="targa", description="[LFD] Controlla la targa di un veicolo")
+    @bot.tree.command(name="controllatarga", description="[LFD] Controlla la targa di un veicolo")
     @app_commands.describe(targa="La targa del veicolo da controllare")
     async def targa_cmd(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
@@ -561,7 +552,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
     # ── /veicoli assicurazione ───────────────────────────────────────────────
-    @veicoli_group.command(name="assicurazione", description="[OFFICINA] Gestisci l'assicurazione di un veicolo")
+    @bot.tree.command(name="assicurazione", description="[OFFICINA] Gestisci l'assicurazione di un veicolo")
     @app_commands.describe(targa="La targa del veicolo", stato="Aggiungi o rimuovi l'assicurazione")
     @app_commands.choices(stato=[
         app_commands.Choice(name="Aggiungi", value="aggiungi"),
@@ -601,7 +592,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
     # ── /veicoli modifica ─────────────────────────────────────────────────────
-    @veicoli_group.command(name="modifica", description="[OFFICINA] Modifica un veicolo")
+    @bot.tree.command(name="modificaveicolo", description="[OFFICINA] Modifica un veicolo")
     @app_commands.describe(targa="La targa del veicolo", modifiche="Le modifiche applicate al veicolo")
     async def modifica(interaction: discord.Interaction, targa: str, modifiche: str):
         if not has_role(interaction, OFFICINA_ROLE_ID):
@@ -633,7 +624,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
     # ── /veicoli sequestra ────────────────────────────────────────────────────
-    @veicoli_group.command(name="sequestra", description="[LFD] Sequestra un veicolo")
+    @bot.tree.command(name="sequestraveicolo", description="[LFD] Sequestra un veicolo")
     @app_commands.describe(targa="La targa del veicolo da sequestrare")
     async def sequestra(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
@@ -668,7 +659,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
     # ── /veicoli dissequestra ─────────────────────────────────────────────────
-    @veicoli_group.command(name="dissequestra", description="[LFD] Rimuovi il sequestro da un veicolo")
+    @bot.tree.command(name="dissequestraveicolo", description="[LFD] Rimuovi il sequestro da un veicolo")
     @app_commands.describe(targa="La targa del veicolo da dissequestrare")
     async def dissequestra(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
@@ -703,7 +694,7 @@ def setup_vehicle_commands(bot: commands.Bot):
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
 
     # ── /veicoli rimuovi-libretto ─────────────────────────────────────────────
-    @veicoli_group.command(name="rimuovi-libretto", description="[LFD] Rimuovi un libretto di circolazione")
+    @bot.tree.command(name="rimuovilibretto", description="[LFD] Rimuovi un libretto di circolazione")
     @app_commands.describe(targa="La targa del veicolo")
     async def rimuovi_libretto(interaction: discord.Interaction, targa: str):
         if not has_role(interaction, LFD_ROLE_ID):
@@ -730,6 +721,3 @@ def setup_vehicle_commands(bot: commands.Bot):
         except Exception as e:
             print(f"Errore in veicoli rimuovi-libretto: {e}")
             await interaction.followup.send("❌ Si è verificato un errore!", ephemeral=True)
-
-    # ── Registrazione gruppo (1 solo comando verso il limite di 100) ──────────
-    bot.tree.add_command(veicoli_group)
