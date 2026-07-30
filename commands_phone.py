@@ -24,14 +24,17 @@ from constants import (
 #     gli ID reali. Il comando funziona comunque, semplicemente non pinga
 #     nessun canale finché questi restano a 0.
 # ══════════════════════════════════════════════════════════════════════════════
-CANALE_POLIZIA    = 0   # Cercapersone/emergenza Polizia
-CANALE_EMS        = 0   # Cercapersone/emergenza EMS
-CANALE_TAXI       = 0   # Chiamata emergenza Taxi
-CANALE_MECCANICO  = 0   # Cercapersone/emergenza Meccanico
-CANALE_QUESTURA   = 0   # Fax — Questura
-CANALE_OSPEDALE   = 0   # Fax — Ospedale
-CANALE_MUNICIPIO  = 0   # Fax — Municipio
-CANALE_TRIBUNALE  = 0   # Fax — Tribunale
+CANALE_POLIZIA    = 1532351156712505495   # Cercapersone/emergenza Polizia
+CANALE_EMS        = 1532351192175345786   # Cercapersone/emergenza EMS
+CANALE_TAXI       = 1532351240850247803   # Chiamata emergenza Taxi
+CANALE_MECCANICO  = 1532351313097003058   # Cercapersone/emergenza Meccanico
+CANALE_QUESTURA   = 1532351380906315948   # Fax — Questura
+CANALE_OSPEDALE   = 1532351409213673522   # Fax — Ospedale
+CANALE_MUNICIPIO  = 1532351452033449994   # Fax — Municipio
+CANALE_TRIBUNALE  = 1532351483935326228# Fax — Tribunale
+
+TASSISTA_ROLE_ID = 1431547525378347050
+GIUSTIZIA_ROLE_ID = 1415244214329151508
 
 # ── Colori tema anni '90 (grigio/verde/blu scuro) ─────────────────────────────
 COLOR_PHONE   = 0x2F3336   # grigio scuro corpo telefono
@@ -49,8 +52,8 @@ BOLLETTA_INTERVALLO_H   = 24      # ogni quante ore si genera la bolletta
 ENTI_FAX = {
     "Questura":   {"ruolo": FORZEDELLORDINE_ROLE_ID, "canale": CANALE_QUESTURA,  "emoji": "🚔"},
     "Ospedale":   {"ruolo": DOTTORE_ROLE_ID,          "canale": CANALE_OSPEDALE,  "emoji": "🏥"},
-    "Municipio":  {"ruolo": STAFF_ROLE_ID,            "canale": CANALE_MUNICIPIO, "emoji": "🏛️"},  # ⚠️ ruolo placeholder
-    "Tribunale":  {"ruolo": STAFF_ROLE_ID,            "canale": CANALE_TRIBUNALE, "emoji": "⚖️"},   # ⚠️ ruolo placeholder
+    "Municipio":  {"ruolo": GIUSTIZIA_ROLE_ID,            "canale": CANALE_MUNICIPIO, "emoji": "🏛️"},  # ⚠️ ruolo placeholder
+    "Tribunale":  {"ruolo": GIUSTIZIA_ROLE_ID,            "canale": CANALE_TRIBUNALE, "emoji": "⚖️"},   # ⚠️ ruolo placeholder
 }
 
 # ── Elenco telefonico attività (flavor RP, numeri fittizi ma coerenti) ────────
@@ -76,7 +79,7 @@ ENTI_PAGER = {
 NUMERI_EMERGENZA = {
     "Polizia":    {"canale": CANALE_POLIZIA,   "emoji": "🚔", "ruolo_ping": FORZEDELLORDINE_ROLE_ID},
     "EMS":        {"canale": CANALE_EMS,       "emoji": "🏥", "ruolo_ping": DOTTORE_ROLE_ID},
-    "Taxi":       {"canale": CANALE_TAXI,      "emoji": "🚕", "ruolo_ping": None},
+    "Taxi":       {"canale": CANALE_TAXI,      "emoji": "🚕", "ruolo_ping": TASSISTA_ROLE_ID},
     "Meccanico":  {"canale": CANALE_MECCANICO, "emoji": "🔧", "ruolo_ping": MECCANICO_ROLE_ID},
 }
 
