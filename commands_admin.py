@@ -393,20 +393,6 @@ def setup_admin_commands(bot):
         await interaction.channel.send(content="@everyone", embed=embed)
         await interaction.response.send_message("✅ Annuncio inviato!", ephemeral=True)
 
-    # ── /wipe-item ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="wipe-item", description="[Staff] Svuota gli inventari di tutti i giocatori")
-    async def wipe_item(interaction: discord.Interaction):
-        if not has_staff(interaction):
-            await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True); return
-        async with aiosqlite.connect(DATABASE_NAME) as db:
-            await db.execute("DELETE FROM inventory")
-            await db.commit()
-        embed = discord.Embed(title="🗑️ 𝐖𝐢𝐩𝐞 𝐈𝐭𝐞𝐦 𝐂𝐨𝐦𝐩𝐥𝐞𝐭𝐚𝐭𝐨", color=discord.Color.red(), timestamp=discord.utils.utcnow())
-        embed.add_field(name="👮 Eseguito da", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="🏙️ West Coast RP — Wipe")
-        await interaction.response.send_message(embed=embed)
-        await _log(bot, embed)
-
     # ── /whitelister ──────────────────────────────────────────────────────────
     @bot.tree.command(name="whitelister", description="[Whitelister] Dai l'esito di background o whitelist")
     @app_commands.describe(
