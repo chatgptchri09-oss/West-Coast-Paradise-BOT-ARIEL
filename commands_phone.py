@@ -16,7 +16,8 @@ from datetime import datetime, timezone
 import database
 from constants import (
     LOG_CHANNEL_ID, MARKET_ROLE_ID, FORZEDELLORDINE_ROLE_ID,
-    DOTTORE_ROLE_ID, MECCANICO_ROLE_ID, STAFF_ROLE_ID
+    DOTTORE_ROLE_ID, MECCANICO_ROLE_ID, STAFF_ROLE_ID,
+    GUILD_ID, CALL_VOICE_CATEGORY_ID
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -47,6 +48,10 @@ BATTERIA_COSTO_SMS      = 2
 COSTO_SMS_BOLLETTA      = 2       # $ per SMS inviato
 COSTO_CHIAMATA_BOLLETTA = 5       # $ per chiamata effettuata
 BOLLETTA_INTERVALLO_H   = 24      # ogni quante ore si genera la bolletta
+
+# ── Canale vocale privato di chiamata ─────────────────────────────────────────
+CANALE_CHIAMATA_MAX_ATTESE   = 80   # 80 * 15s = 20 minuti di vita massima
+CANALE_CHIAMATA_VUOTO_LIMITE = 30   # secondi a canale vuoto prima di eliminarlo
 
 # ── Enti pubblici abilitati al Fax ────────────────────────────────────────────
 ENTI_FAX = {
@@ -119,6 +124,88 @@ async def _richiedi_telefono(interaction: discord.Interaction) -> dict | None:
         )
         return None
     return phone
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CANALE VOCALE PRIVATO DI CHIAMATA
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _crea_canale_privato_chiamata(bot: commands.Bot, caller: discord.User, target: discord.User) -> discord.VoiceChannel | None:
+    """Crea un canale vocale visibile/accessibile solo ai 2 utenti in chiamata.
+    Ritorna None (con log di errore) se guild/categoria non sono configurate o
+    se manca il permesso di gestione canali."""
+    guild = bot.get_guild(GUILD_ID)
+    if not guild:
+        print(f"❌ [Telefono] GUILD_ID {GUILD_ID} non trovato: impossibile creare il canale chiamata.", flush=True)
+        return None
+
+    category = guild.get_channel(CALL_VOICE_CATEGORY_ID) if CALL_VOICE_CATEGORY_ID else None
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False, connect=False),
+        guild.me: discord.PermissionOverwrite(view_channel=True, connect=True, manage_channels=True),
+    }
+
+    caller_member = guild.get_member(caller.id)
+    target_member = guild.get_member(target.id)
+    if caller_member:
+        overwrites[caller_member] = discord.PermissionOverwrite(view_channel=True, connect=True, speak=True)
+    if target_member:
+        overwrites[target_member] = discord.PermissionOverwrite(view_channel=True, connect=True, speak=True)
+
+    nome_canale = f"📞-{caller.display_name}-{target.display_name}"[:100]
+
+    try:
+        canale = await guild.create_voice_channel(
+            name=nome_canale,
+            category=category,
+            overwrites=overwrites,
+            reason=f"Canale privato chiamata telefonica RP tra {caller} e {target}"
+        )
+    except discord.Forbidden:
+        print("❌ [Telefono] Permessi insufficienti per creare il canale vocale della chiamata.", flush=True)
+        return None
+    except Exception as e:
+        print(f"❌ [Telefono] Errore creazione canale chiamata: {e}", flush=True)
+        return None
+
+    asyncio.create_task(_monitora_canale_chiamata(bot, canale.id, guild.id))
+    return canale
+
+
+async def _monitora_canale_chiamata(bot: commands.Bot, canale_id: int, guild_id: int):
+    """Elimina automaticamente il canale chiamata quando resta vuoto per
+    CANALE_CHIAMATA_VUOTO_LIMITE secondi, o comunque dopo un tetto massimo
+    di CANALE_CHIAMATA_MAX_ATTESE cicli, per non lasciare canali orfani."""
+    vuoto_da = 0
+    for _ in range(CANALE_CHIAMATA_MAX_ATTESE):
+        await asyncio.sleep(15)
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return
+        canale = guild.get_channel(canale_id)
+        if canale is None:
+            return  # già eliminato
+        if len(canale.members) == 0:
+            vuoto_da += 15
+            if vuoto_da >= CANALE_CHIAMATA_VUOTO_LIMITE:
+                try:
+                    await canale.delete(reason="Chiamata terminata - canale vocale vuoto")
+                except Exception:
+                    pass
+                return
+        else:
+            vuoto_da = 0
+
+    # Tetto massimo raggiunto: elimina comunque il canale
+    guild = bot.get_guild(guild_id)
+    if guild:
+        canale = guild.get_channel(canale_id)
+        if canale:
+            try:
+                await canale.delete(reason="Timeout massimo canale chiamata")
+            except Exception:
+                pass
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -273,9 +360,17 @@ class RispostaChiamataView(discord.ui.View):
 
         for c in self.children:
             c.disabled = True
+
+        # Crea il canale vocale privato riservato ai 2 partecipanti
+        canale = await _crea_canale_privato_chiamata(self.bot, self.caller, self.target)
+        if canale:
+            testo_canale = f"🔊 Canale vocale privato: {canale.mention}"
+        else:
+            testo_canale = "⚠️ Canale vocale non creato (configurazione mancante o permessi insufficienti — avvisa lo Staff)."
+
         embed = discord.Embed(
             title="☎️ 𝐂𝐡𝐢𝐚𝐦𝐚𝐭𝐚 𝐢𝐧 𝐜𝐨𝐫𝐬𝐨",
-            description=f"Sei in linea con **{self.numero_caller}**.\nRP la conversazione in DM/canale vocale.",
+            description=f"Sei in linea con **{self.numero_caller}**.\n{testo_canale}",
             color=COLOR_CALL
         )
         embed.set_footer(text="🏙️ West Coast RP '93 — Telefono")
@@ -284,7 +379,7 @@ class RispostaChiamataView(discord.ui.View):
         try:
             await self.caller.send(embed=discord.Embed(
                 title="✅ Chiamata Accettata",
-                description=f"**{self.numero_target}** ha risposto! Sei in linea.",
+                description=f"**{self.numero_target}** ha risposto! Sei in linea.\n{testo_canale}",
                 color=COLOR_CALL
             ))
         except Exception:
