@@ -1078,3 +1078,92 @@ async def get_max_sms_id() -> int:
     async with aiosqlite.connect(DATABASE_NAME) as db:
         async with db.execute("SELECT COALESCE(MAX(id),0) FROM phone_sms") as c:
             return (await c.fetchone())[0]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CERCAPERSONE (TELEDRIN) '93
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def init_pager_tables():
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS pagers (
+                user_id     TEXT PRIMARY KEY,
+                numero      TEXT UNIQUE NOT NULL,
+                silenzioso  INTEGER DEFAULT 0,
+                created_at  TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS pager_messages (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id        TEXT NOT NULL,
+                mittente_numero TEXT,
+                mittente_nome   TEXT,
+                testo           TEXT NOT NULL,
+                created_at      TEXT
+            )
+        """)
+        await db.commit()
+
+
+async def get_pager(user_id: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM pagers WHERE user_id=?", (user_id,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+
+async def get_pager_by_number(numero: str) -> dict | None:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM pagers WHERE numero=?", (numero,)) as c:
+            row = await c.fetchone()
+            return dict(row) if row else None
+
+
+async def create_pager(user_id: str, numero: str) -> bool:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        try:
+            await db.execute(
+                "INSERT INTO pagers (user_id,numero,silenzioso,created_at) VALUES (?,?,0,?)",
+                (user_id, numero, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+            )
+            await db.commit()
+            return True
+        except Exception:
+            return False
+
+
+async def set_pager_silenzioso(user_id: str, silenzioso: bool):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("UPDATE pagers SET silenzioso=? WHERE user_id=?", (1 if silenzioso else 0, user_id))
+        await db.commit()
+
+
+async def add_pager_message(owner_id: str, mittente_numero: str | None, mittente_nome: str | None, testo: str) -> int:
+    from datetime import datetime
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        c = await db.execute(
+            "INSERT INTO pager_messages (owner_id,mittente_numero,mittente_nome,testo,created_at) VALUES (?,?,?,?,?)",
+            (owner_id, mittente_numero, mittente_nome, testo, datetime.utcnow().strftime("%d/%m/%Y %H:%M"))
+        )
+        await db.commit()
+        return c.lastrowid
+
+
+async def get_pager_messages(owner_id: str, limit: int = 15) -> list:
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM pager_messages WHERE owner_id=? ORDER BY id DESC LIMIT ?", (owner_id, limit)
+        ) as c:
+            return [dict(r) for r in await c.fetchall()]
+
+
+async def clear_pager_messages(owner_id: str):
+    async with aiosqlite.connect(DATABASE_NAME) as db:
+        await db.execute("DELETE FROM pager_messages WHERE owner_id=?", (owner_id,))
+        await db.commit()
