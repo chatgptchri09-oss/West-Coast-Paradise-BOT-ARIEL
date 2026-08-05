@@ -8,7 +8,7 @@ from constants import LOG_CHANNEL_ID, DATABASE_NAME, has_staff, CHIAVE_ROLE_ID
 AGENZIA_ROLE_ID      = 1404051965364670545
 WHITELISTER_ROLE_ID  = [1415090850253246534, 1524309399987027971]  # lista, non tupla
 CHIAVE_CMD_ROLE_ID   = 1414735564632231988
-DEVELOPER_ROLE_ID    = 1458161081024516242   # ruolo per /setup-background
+DEVELOPER_ROLE_ID    = 1458161081024516242   # ruolo per /staff setup-background
 
 # Ruoli assegnati dal whitelister
 BG_POSITIVO_ROLE_ID  = 1415102727746490522
@@ -23,6 +23,19 @@ SESSO_DONNA_ROLE_ID  = 1415375849242497087
 NON_WL_ROLE_ID       = 1414738242938605660   # ruolo "Non Whitelisted" GTA
 
 BACKGROUND_CHANNEL_ID = 1415100952796725268
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ⚠️ Discord NON permette di nascondere il nome del gruppo: ogni sottocomando
+#  si digita sempre come "/staff <sottocomando>" (es. /staff add-money).
+#  Non esiste un modo per far apparire un sottocomando "nudo" come /add-money.
+#  Ho scelto "staff" come nome breve per minimizzare la digitazione.
+#  Così facendo, questi 8 comandi occupano 1 solo slot sul limite di 100
+#  comandi globali, invece di 8.
+# ══════════════════════════════════════════════════════════════════════════════
+staff_group = app_commands.Group(
+    name="staff",
+    description="Comandi riservati allo Staff"
+)
 
 # ── Helper log ────────────────────────────────────────────────────────────────
 async def _log(bot, embed: discord.Embed):
@@ -282,8 +295,8 @@ def register_persistent_views(bot):
 # ─────────────────────────────────────────────────────────────────────────────
 def setup_admin_commands(bot):
 
-    # ── /add-money ────────────────────────────────────────────────────────────
-    @bot.tree.command(name="add-money", description="[Staff] Aggiungi denaro a un giocatore")
+    # ── /staff add-money ─────────────────────────────────────────────────────
+    @staff_group.command(name="add-money", description="[Staff] Aggiungi denaro a un giocatore")
     @app_commands.describe(giocatore="Il giocatore", importo="Importo", dove="Contanti o banca")
     @app_commands.choices(dove=[
         app_commands.Choice(name="💵 Contanti", value="cash"),
@@ -309,8 +322,8 @@ def setup_admin_commands(bot):
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
-    # ── /remove-money ─────────────────────────────────────────────────────────
-    @bot.tree.command(name="remove-money", description="[Staff] Rimuovi denaro da un giocatore")
+    # ── /staff remove-money ──────────────────────────────────────────────────
+    @staff_group.command(name="remove-money", description="[Staff] Rimuovi denaro da un giocatore")
     @app_commands.describe(giocatore="Il giocatore", importo="Importo", dove="Contanti, banca, o automatico")
     @app_commands.choices(dove=[
         app_commands.Choice(name="🔄 Automatico (contanti → banca)", value="auto"),
@@ -353,8 +366,8 @@ def setup_admin_commands(bot):
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
-    # ── /paga-stipendio ───────────────────────────────────────────────────────
-    @bot.tree.command(name="paga-stipendio", description="[Staff] Paga lo stipendio a un giocatore")
+    # ── /staff paga-stipendio ────────────────────────────────────────────────
+    @staff_group.command(name="paga-stipendio", description="[Staff] Paga lo stipendio a un giocatore")
     @app_commands.describe(giocatore="Il giocatore", importo="Importo stipendio", ruolo="Lavoro del giocatore")
     async def paga_stipendio(interaction: discord.Interaction, giocatore: discord.Member, importo: int, ruolo: str):
         if not has_staff(interaction):
@@ -379,8 +392,8 @@ def setup_admin_commands(bot):
             await giocatore.send(embed=dm)
         except Exception: pass
 
-    # ── /annuncio ─────────────────────────────────────────────────────────────
-    @bot.tree.command(name="annuncio", description="[Staff] Invia un annuncio con @everyone")
+    # ── /staff annuncio ──────────────────────────────────────────────────────
+    @staff_group.command(name="annuncio", description="[Staff] Invia un annuncio con @everyone")
     @app_commands.describe(titolo="Titolo", messaggio="Testo dell'annuncio")
     async def annuncio(interaction: discord.Interaction, titolo: str, messaggio: str):
         if not has_staff(interaction):
@@ -393,8 +406,8 @@ def setup_admin_commands(bot):
         await interaction.channel.send(content="@everyone", embed=embed)
         await interaction.response.send_message("✅ Annuncio inviato!", ephemeral=True)
 
-    # ── /whitelister ──────────────────────────────────────────────────────────
-    @bot.tree.command(name="whitelister", description="[Whitelister] Dai l'esito di background o whitelist")
+    # ── /staff whitelister ───────────────────────────────────────────────────
+    @staff_group.command(name="whitelister", description="[Whitelister] Dai l'esito di background o whitelist")
     @app_commands.describe(
         giocatore="Il candidato", esito="Tipo di esito",
         sesso="Sesso del personaggio (solo per Whitelist Positiva)",
@@ -466,8 +479,8 @@ def setup_admin_commands(bot):
             await giocatore.send(embed=embed)
         except Exception: pass
 
-    # ── /status-whitelist ─────────────────────────────────────────────────────
-    @bot.tree.command(name="status-whitelist", description="[Staff] Stato servizi whitelist")
+    # ── /staff status-whitelist ──────────────────────────────────────────────
+    @staff_group.command(name="status-whitelist", description="[Staff] Stato servizi whitelist")
     @app_commands.describe(stato="Online o offline")
     @app_commands.choices(stato=[
         app_commands.Choice(name="🟢 Online",  value="online"),
@@ -486,8 +499,8 @@ def setup_admin_commands(bot):
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("✅ Stato aggiornato!", ephemeral=True)
 
-    # ── /add-fondocassa ───────────────────────────────────────────────────────
-    @bot.tree.command(name="add-fondocassa", description="[Staff] Aggiungi al fondo cassa di una compagnia")
+    # ── /staff add-fondocassa ────────────────────────────────────────────────
+    @staff_group.command(name="add-fondocassa", description="[Staff] Aggiungi al fondo cassa di una compagnia")
     @app_commands.describe(compagnia="La compagnia", importo="Importo da aggiungere")
     @app_commands.choices(compagnia=[
         app_commands.Choice(name="🚔 Polizia",      value="Polizia"),
@@ -515,10 +528,8 @@ def setup_admin_commands(bot):
         await interaction.response.send_message(embed=embed)
         await _log(bot, embed)
 
-    
-
-    # ── /setup-background ─────────────────────────────────────────────────────
-    @bot.tree.command(name="setup-background", description="[Developer] Invia il pannello Background PG nel canale")
+    # ── /staff setup-background ──────────────────────────────────────────────
+    @staff_group.command(name="setup-background", description="[Developer] Invia il pannello Background PG nel canale")
     async def setup_background(interaction: discord.Interaction):
         if not _has_role(interaction, CHIAVE_CMD_ROLE_ID):
             await interaction.response.send_message("❌ Non hai i permessi.", ephemeral=True)
@@ -542,3 +553,6 @@ def setup_admin_commands(bot):
 
         await interaction.channel.send(embed=embed, view=BackgroundView(bot))
         await interaction.response.send_message("✅ Pannello background inviato!", ephemeral=True)
+
+    # ── Registra il gruppo (1 solo comando verso il limite di 100) ─────────────
+    bot.tree.add_command(staff_group)
