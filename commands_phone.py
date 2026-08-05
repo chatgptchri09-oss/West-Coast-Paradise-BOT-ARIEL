@@ -53,6 +53,11 @@ BOLLETTA_INTERVALLO_H   = 24      # ogni quante ore si genera la bolletta
 CANALE_CHIAMATA_MAX_ATTESE   = 80   # 80 * 15s = 20 minuti di vita massima
 CANALE_CHIAMATA_VUOTO_LIMITE = 30   # secondi a canale vuoto prima di eliminarlo
 
+# ── Cercapersone (Teledrin) ───────────────────────────────────────────────────
+COLOR_PAGER       = 0x0D3B1E   # verde scuro schermo LCD cercapersone
+COLOR_PAGER_ALERT = 0x1E90FF   # blu acceso — nuovo bip in arrivo
+PAGER_PREFISSO    = "PGR-"     # prefisso numerico del cercapersone (diverso dal telefono)
+
 # ── Enti pubblici abilitati al Fax ────────────────────────────────────────────
 ENTI_FAX = {
     "Questura":   {"ruolo": FORZEDELLORDINE_ROLE_ID, "canale": CANALE_QUESTURA,  "emoji": "🚔"},
@@ -206,6 +211,135 @@ async def _monitora_canale_chiamata(bot: commands.Bot, canale_id: int, guild_id:
                 await canale.delete(reason="Timeout massimo canale chiamata")
             except Exception:
                 pass
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CERCAPERSONE (TELEDRIN) '93 — dispositivo standalone, venduto dal Market
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _richiedi_cercapersone(interaction: discord.Interaction) -> dict | None:
+    """Verifica che l'utente possieda un cercapersone. Se no, avvisa e ritorna None."""
+    pager = await database.get_pager(str(interaction.user.id))
+    if not pager:
+        await interaction.response.send_message(
+            "❌ Non possiedi un cercapersone! Vai al **Market** in RP per acquistarne uno.",
+            ephemeral=True
+        )
+        return None
+    return pager
+
+
+def _pager_msg_line(m: dict) -> str:
+    mittente = m["mittente_nome"] or m["mittente_numero"] or "Sconosciuto"
+    return f"📟 **Da:** `{mittente}`\n> {m['testo']}\n> ⏰ {m['created_at']}"
+
+
+class InviaPaginaModal(discord.ui.Modal, title="📟 Invia Pagina"):
+    numero = discord.ui.TextInput(label="Numero cercapersone destinatario", placeholder="Es: PGR-0142", required=True, max_length=30)
+    testo  = discord.ui.TextInput(label="Messaggio breve", style=discord.TextStyle.paragraph, max_length=150, required=True)
+
+    def __init__(self, bot: commands.Bot):
+        super().__init__()
+        self.bot = bot
+
+    async def on_submit(self, interaction: discord.Interaction):
+        uid = str(interaction.user.id)
+        dest_numero = self.numero.value.strip()
+        dest_pager  = await database.get_pager_by_number(dest_numero)
+        if not dest_pager:
+            await interaction.response.send_message(f"❌ Nessun cercapersone registrato con il numero **{dest_numero}**.", ephemeral=True)
+            return
+        if dest_pager["user_id"] == uid:
+            await interaction.response.send_message("❌ Non puoi mandare una pagina a te stesso.", ephemeral=True)
+            return
+
+        # Se il mittente ha anche un telefono, il numero mostrato al destinatario sarà quello,
+        # altrimenti il proprio nome Discord.
+        mio_phone = await database.get_phone(uid)
+        mittente_numero = mio_phone["numero"] if mio_phone else None
+        mittente_nome   = mittente_numero or interaction.user.display_name
+
+        await database.add_pager_message(dest_pager["user_id"], mittente_numero, mittente_nome, self.testo.value)
+
+        embed = discord.Embed(
+            title="📟 𝐏𝐚𝐠𝐢𝐧𝐚 𝐈𝐧𝐯𝐢𝐚𝐭𝐚",
+            color=COLOR_PAGER,
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="📤 A", value=dest_numero, inline=True)
+        embed.add_field(name="💬 Testo", value=self.testo.value, inline=False)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Cercapersone")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        if not dest_pager["silenzioso"]:
+            try:
+                dest_user = await self.bot.fetch_user(int(dest_pager["user_id"]))
+                dm = discord.Embed(
+                    title="📟 𝐁𝐈𝐏 𝐁𝐈𝐏 — 𝐍𝐮𝐨𝐯𝐚 𝐏𝐚𝐠𝐢𝐧𝐚",
+                    description=f"```\n{mittente_nome}\n{self.testo.value}\n```",
+                    color=COLOR_PAGER_ALERT,
+                    timestamp=discord.utils.utcnow()
+                )
+                dm.set_footer(text="🏙️ West Coast RP '93 — Cercapersone | Usa /cercapersone per leggere")
+                await dest_user.send(embed=dm)
+            except Exception:
+                pass
+
+
+class CercapersoneMenuView(discord.ui.View):
+    def __init__(self, bot: commands.Bot, owner_id: str):
+        super().__init__(timeout=180)
+        self.bot      = bot
+        self.owner_id = owner_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if str(interaction.user.id) != self.owner_id:
+            await interaction.response.send_message("❌ Questo non è il tuo cercapersone!", ephemeral=True)
+            return False
+        return True
+
+    async def _build_home_embed(self) -> discord.Embed:
+        pager = await database.get_pager(self.owner_id)
+        messaggi = await database.get_pager_messages(self.owner_id, limit=5)
+        silenzioso = " 🔇" if pager["silenzioso"] else ""
+        embed = discord.Embed(
+            title="📟 𝐂𝐞𝐫𝐜𝐚𝐩𝐞𝐫𝐬𝐨𝐧𝐞 '𝟗𝟑",
+            description=f"**Numero:** `{pager['numero']}`{silenzioso}",
+            color=COLOR_PAGER,
+            timestamp=discord.utils.utcnow()
+        )
+        if not messaggi:
+            embed.add_field(name="📥 Ultimi messaggi", value="*Nessun messaggio ricevuto.*", inline=False)
+        else:
+            embed.add_field(
+                name="📥 Ultimi messaggi",
+                value="\n\n".join(_pager_msg_line(m) for m in messaggi),
+                inline=False
+            )
+        embed.set_footer(text="🏙️ West Coast RP '93 — Cercapersone")
+        return embed
+
+    @discord.ui.button(label="Invia Pagina", emoji="📟", style=discord.ButtonStyle.success, row=0)
+    async def invia(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(InviaPaginaModal(self.bot))
+
+    @discord.ui.button(label="Aggiorna", emoji="🔄", style=discord.ButtonStyle.secondary, row=0)
+    async def aggiorna(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = await self._build_home_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Silenzioso", emoji="🔇", style=discord.ButtonStyle.secondary, row=1)
+    async def toggle_silenzioso(self, interaction: discord.Interaction, button: discord.ui.Button):
+        pager = await database.get_pager(self.owner_id)
+        nuovo = not pager["silenzioso"]
+        await database.set_pager_silenzioso(self.owner_id, nuovo)
+        await interaction.response.send_message(f"🔇 Modalità silenziosa {'attivata' if nuovo else 'disattivata'}.", ephemeral=True)
+
+    @discord.ui.button(label="Cancella messaggi", emoji="🗑️", style=discord.ButtonStyle.danger, row=1)
+    async def cancella(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await database.clear_pager_messages(self.owner_id)
+        embed = await self._build_home_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -887,6 +1021,7 @@ class EmergenzaSelect(discord.ui.Select):
 async def task_bolletta_periodica(bot: commands.Bot):
     """Ogni BOLLETTA_INTERVALLO_H ore genera una bolletta per l'utilizzo del telefono."""
     await database.init_phone_tables()
+    await database.init_pager_tables()
     await bot.wait_until_ready()
     print("📱 Task bolletta telefonica avviato", flush=True)
 
@@ -1008,6 +1143,78 @@ def setup_phone_commands(bot: commands.Bot):
                 log.add_field(name="🏪 Venditore", value=interaction.user.mention, inline=True)
                 log.add_field(name="👤 Cliente",   value=utente.mention,           inline=True)
                 log.add_field(name="📞 Numero",    value=numero,                   inline=True)
+                await ch.send(embed=log)
+        except Exception:
+            pass
+
+    # ── /cercapersone ────────────────────────────────────────────────────────
+    @bot.tree.command(name="cercapersone", description="Apri il tuo cercapersone")
+    async def cercapersone_cmd(interaction: discord.Interaction):
+        pager = await _richiedi_cercapersone(interaction)
+        if not pager:
+            return
+        menu = CercapersoneMenuView(bot, str(interaction.user.id))
+        embed = await menu._build_home_embed()
+        await interaction.response.send_message(embed=embed, view=menu, ephemeral=True)
+
+    # ── /vendi-cercapersone ──────────────────────────────────────────────────
+    @bot.tree.command(name="vendi-cercapersone", description="[Market] Vendi un cercapersone a un cliente")
+    @app_commands.describe(utente="Il cliente a cui vendere il cercapersone", id_psn="ID PSN del cliente (diventerà il numero)")
+    async def vendi_cercapersone(interaction: discord.Interaction, utente: discord.Member, id_psn: str):
+        if not isinstance(interaction.user, discord.Member) or \
+           not any(r.id == MARKET_ROLE_ID for r in interaction.user.roles):
+            await interaction.response.send_message("❌ Solo il Market può vendere cercapersone!", ephemeral=True)
+            return
+        if utente.bot:
+            await interaction.response.send_message("❌ Non puoi vendere un cercapersone a un bot.", ephemeral=True)
+            return
+
+        esistente = await database.get_pager(str(utente.id))
+        if esistente:
+            await interaction.response.send_message(
+                f"❌ {utente.mention} possiede già un cercapersone (`{esistente['numero']}`).", ephemeral=True
+            )
+            return
+
+        numero = f"{PAGER_PREFISSO}{id_psn.strip()}"
+        if await database.get_pager_by_number(numero):
+            await interaction.response.send_message(f"❌ Il numero **{numero}** è già in uso da un altro cliente.", ephemeral=True)
+            return
+
+        ok = await database.create_pager(str(utente.id), numero)
+        if not ok:
+            await interaction.response.send_message("❌ Errore durante la creazione del cercapersone.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="📟 𝐂𝐞𝐫𝐜𝐚𝐩𝐞𝐫𝐬𝐨𝐧𝐞 𝐕𝐞𝐧𝐝𝐮𝐭𝐨",
+            color=COLOR_PAGER,
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="👤 Cliente", value=utente.mention, inline=True)
+        embed.add_field(name="📟 Numero",  value=f"`{numero}`",  inline=True)
+        embed.add_field(name="🏪 Venduto da", value=interaction.user.mention, inline=True)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Market")
+        await interaction.response.send_message(embed=embed)
+
+        try:
+            dm = discord.Embed(
+                title="📟 Hai ricevuto un cercapersone!",
+                description=f"Il tuo nuovo numero Teledrin è **`{numero}`**.\nUsa `/cercapersone` per aprirlo.",
+                color=COLOR_PAGER
+            )
+            dm.set_footer(text="🏙️ West Coast RP '93 — Market")
+            await utente.send(embed=dm)
+        except Exception:
+            pass
+
+        try:
+            ch = bot.get_channel(LOG_CHANNEL_ID)
+            if ch:
+                log = discord.Embed(title="📟 LOG — Cercapersone Venduto", color=COLOR_PAGER, timestamp=discord.utils.utcnow())
+                log.add_field(name="🏪 Venditore", value=interaction.user.mention, inline=True)
+                log.add_field(name="👤 Cliente",   value=utente.mention,           inline=True)
+                log.add_field(name="📟 Numero",    value=numero,                   inline=True)
                 await ch.send(embed=log)
         except Exception:
             pass
