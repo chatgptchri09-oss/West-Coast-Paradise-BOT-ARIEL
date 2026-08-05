@@ -68,55 +68,81 @@ ARMI_CHOICES = [
     app_commands.Choice(name="💣 Esplosivo",          value="💣 Esplosivo"),
 ]
 
-DROGA_CHOICES = [
-    app_commands.Choice(name="🍃 Tabacco",       value="🍃 Tabacco"),
-    app_commands.Choice(name="🌿 Marijuana",     value="🌿 Marijuana"),
-    app_commands.Choice(name="🥥 Cocaina",       value="🥥 Cocaina"),
-    app_commands.Choice(name="💉 Eroina",        value="💉 Eroina"),
-]
-
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GRUPPO /nero — 12 comandi accorpati in 1 solo comando registrato
-#  su Discord (i sottocomandi NON contano verso il limite di 100 comandi)
+#  GRUPPO /nero — comandi accorpati che NON hanno bisogno di selezione tipo
+#  (alcol/distillazione/moonshine hanno un solo prodotto, niente autocomplete)
 # ══════════════════════════════════════════════════════════════════════════════
 nero_group = app_commands.Group(
     name="nero",
-    description="Mercato Nero: raccolta, vendita, produzione illegale"
+    description="Mercato Nero: produzione alcolica clandestina"
 )
-raccolta_group   = app_commands.Group(name="raccolta",           description="Raccolta droga",              parent=nero_group)
-vendita_group    = app_commands.Group(name="vendita",            description="Vendita droga",                parent=nero_group)
 alcool_group     = app_commands.Group(name="alcool",             description="Creazione alcol clandestino",  parent=nero_group)
 distill_group    = app_commands.Group(name="distillazione",      description="Distillazione",                parent=nero_group)
 moonshine_group  = app_commands.Group(name="vendita-alcool",     description="Vendita alcol clandestino",    parent=nero_group)
-armi_group       = app_commands.Group(name="armi",               description="Costruzione armi [Armeria]",   parent=nero_group)
+
+
+def _ha_ruolo_droga(member: discord.Member, droga: str) -> bool:
+    ruolo_id = DROGA_CONFIG.get(droga)
+    if not ruolo_id or not isinstance(member, discord.Member):
+        return False
+    return any(r.id == ruolo_id for r in member.roles)
+
+
+async def _droga_autocomplete(interaction: discord.Interaction, current: str):
+    current = (current or "").lower()
+    return [
+        app_commands.Choice(name=nome, value=nome)
+        for nome in DROGA_CONFIG.keys()
+        if current in nome.lower()
+    ][:25]
+
+
+async def _arma_autocomplete(interaction: discord.Interaction, current: str):
+    current = (current or "").lower()
+    return [c for c in ARMI_CHOICES if current in c.name.lower()][:25]
+
+
+class DrogaSelect(discord.ui.Select):
+    """Menu a tendina con tutte le droghe: controlla il ruolo alla selezione
+    e avvia la sessione (raccolta o vendita) passata dal chiamante."""
+
+    def __init__(self, bot, foto: discord.Attachment, on_avvio):
+        self.bot      = bot
+        self.foto     = foto
+        self.on_avvio = on_avvio
+        options = [discord.SelectOption(label=nome[:100], value=nome) for nome in DROGA_CONFIG.keys()]
+        super().__init__(placeholder="Seleziona il tipo di droga...", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        droga = self.values[0]
+        member = interaction.user
+        if not _ha_ruolo_droga(member, droga):
+            await interaction.response.send_message(f"❌ Non hai il ruolo richiesto per **{droga}**.", ephemeral=True)
+            return
+        await self.on_avvio(interaction, droga, self.foto)
+
+
+class DrogaSelectView(discord.ui.View):
+    def __init__(self, bot, foto: discord.Attachment, on_avvio):
+        super().__init__(timeout=60)
+        self.add_item(DrogaSelect(bot, foto, on_avvio))
 
 
 def setup_theft_commands(bot):
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /nero raccolta inizia | fine
+    #  /inizio-raccolta — chiede subito la foto, poi mostra un menu a tendina
+    #  (visibile solo all'utente) con le droghe, controllando il ruolo alla scelta
     # ══════════════════════════════════════════════════════════════════════════
 
-    @raccolta_group.command(name="inizia", description="Inizia una sessione di raccolta droga")
-    @app_commands.describe(droga="Tipo di droga da raccogliere", foto="Foto della sessione (OBBLIGATORIA)")
-    @app_commands.choices(droga=DROGA_CHOICES)
-    async def raccolta_inizia(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
-        if not _criminali_attivi():
-            await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
+    async def _avvia_raccolta(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
         uid    = str(interaction.user.id)
         member = interaction.user
-        if not foto.content_type or not foto.content_type.startswith("image/"):
-            await interaction.response.send_message("❌ Allega un'immagine valida (jpg, png...).", ephemeral=True); return
         if uid in _raccolte_attive:
             r = _raccolte_attive[uid]
             await interaction.response.send_message(
-                f"❌ Hai già una raccolta di **{r['droga']}** in corso! Usa `/nero raccolta fine` prima.", ephemeral=True); return
-        ruolo_id = DROGA_CONFIG.get(droga)
-        if not ruolo_id or not isinstance(member, discord.Member) or \
-           not any(r.id == ruolo_id for r in member.roles):
-            await interaction.response.send_message(
-                f"❌ Non hai il ruolo richiesto per raccogliere **{droga}**.", ephemeral=True); return
+                f"❌ Hai già una raccolta di **{r['droga']}** in corso! Usa `/fine-raccolta` prima.", ephemeral=True); return
         if await database.get_item_quantity(uid, ITEM_FORBICI) < 1:
             await interaction.response.send_message(
                 f"❌ Non hai **{ITEM_FORBICI}** nello zaino!", ephemeral=True); return
@@ -154,27 +180,43 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta | Usa /nero raccolta fine per terminare")
-        await interaction.response.send_message(embed=embed)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Raccolta | Usa /fine-raccolta per terminare")
+        await interaction.response.edit_message(content="✅ Raccolta avviata!", embed=None, view=None)
+        await interaction.followup.send(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @raccolta_group.command(name="fine", description="Termina la sessione di raccolta droga")
+    @bot.tree.command(name="inizio-raccolta", description="Inizia una sessione di raccolta droga")
+    @app_commands.describe(foto="Foto della sessione (OBBLIGATORIA)")
+    async def inizio_raccolta(interaction: discord.Interaction, foto: discord.Attachment):
+        if not _criminali_attivi():
+            await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
+        if not foto.content_type or not foto.content_type.startswith("image/"):
+            await interaction.response.send_message("❌ Allega un'immagine valida (jpg, png...).", ephemeral=True); return
+        if str(interaction.user.id) in _raccolte_attive:
+            await interaction.response.send_message("❌ Hai già una raccolta in corso! Usa `/fine-raccolta` prima.", ephemeral=True); return
+
+        view = DrogaSelectView(bot, foto, _avvia_raccolta)
+        await interaction.response.send_message("🌿 Che tipo di droga vuoi raccogliere?", view=view, ephemeral=True)
+
+    @bot.tree.command(name="fine-raccolta", description="Termina la sessione di raccolta droga")
     @app_commands.describe(droga="Tipo di droga che stavi raccogliendo")
-    @app_commands.choices(droga=DROGA_CHOICES)
-    async def raccolta_fine(interaction: discord.Interaction, droga: str):
+    @app_commands.autocomplete(droga=_droga_autocomplete)
+    async def fine_raccolta(interaction: discord.Interaction, droga: str):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid = str(interaction.user.id)
         if uid not in _raccolte_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna raccolta attiva. Usa `/nero raccolta inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna raccolta attiva. Usa `/inizio-raccolta` prima.", ephemeral=True); return
         sessione = _raccolte_attive[uid]
         if sessione["droga"] != droga:
             await interaction.response.send_message(
                 f"❌ La tua raccolta attiva è di **{sessione['droga']}**, non di **{droga}**.", ephemeral=True); return
+        if not _ha_ruolo_droga(interaction.user, droga):
+            await interaction.response.send_message(f"❌ Non hai il ruolo richiesto per **{droga}**.", ephemeral=True); return
         now      = datetime.now(timezone.utc)
         inizio   = sessione["inizio"]
         durata_s = (now - inizio).total_seconds()
@@ -205,28 +247,16 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /nero vendita inizia | fine
+    #  /inizio-vendita — stesso pattern: foto subito, poi menu a tendina droga
     # ══════════════════════════════════════════════════════════════════════════
 
-    @vendita_group.command(name="inizia", description="Inizia una sessione di vendita droga")
-    @app_commands.describe(droga="Tipo di droga da vendere", foto="Foto della sessione (OBBLIGATORIA)")
-    @app_commands.choices(droga=DROGA_CHOICES)
-    async def vendita_inizia(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
-        if not _criminali_attivi():
-            await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
+    async def _avvia_vendita(interaction: discord.Interaction, droga: str, foto: discord.Attachment):
         uid    = str(interaction.user.id)
         member = interaction.user
-        if not foto.content_type or not foto.content_type.startswith("image/"):
-            await interaction.response.send_message("❌ Allega un'immagine valida (jpg, png...).", ephemeral=True); return
         if uid in _vendite_attive:
             v = _vendite_attive[uid]
             await interaction.response.send_message(
-                f"❌ Hai già una vendita di **{v['droga']}** in corso! Usa `/nero vendita fine` prima.", ephemeral=True); return
-        ruolo_id = DROGA_CONFIG.get(droga)
-        if not ruolo_id or not isinstance(member, discord.Member) or \
-           not any(r.id == ruolo_id for r in member.roles):
-            await interaction.response.send_message(
-                f"❌ Non hai il ruolo richiesto per vendere **{droga}**.", ephemeral=True); return
+                f"❌ Hai già una vendita di **{v['droga']}** in corso! Usa `/fine-vendita` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _vendite_attive[uid] = {"droga": droga, "inizio": now}
 
@@ -261,27 +291,43 @@ def setup_theft_commands(bot):
         )
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
-        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita | Usa /nero vendita fine per terminare")
-        await interaction.response.send_message(embed=embed)
+        embed.set_footer(text="🏙️ West Coast RP '93 — Vendita | Usa /fine-vendita per terminare")
+        await interaction.response.edit_message(content="✅ Vendita avviata!", embed=None, view=None)
+        await interaction.followup.send(embed=embed)
         try:
             ch = bot.get_channel(LOG_CHANNEL_ID)
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @vendita_group.command(name="fine", description="Termina la sessione di vendita droga")
+    @bot.tree.command(name="inizio-vendita", description="Inizia una sessione di vendita droga")
+    @app_commands.describe(foto="Foto della sessione (OBBLIGATORIA)")
+    async def inizio_vendita(interaction: discord.Interaction, foto: discord.Attachment):
+        if not _criminali_attivi():
+            await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
+        if not foto.content_type or not foto.content_type.startswith("image/"):
+            await interaction.response.send_message("❌ Allega un'immagine valida (jpg, png...).", ephemeral=True); return
+        if str(interaction.user.id) in _vendite_attive:
+            await interaction.response.send_message("❌ Hai già una vendita in corso! Usa `/fine-vendita` prima.", ephemeral=True); return
+
+        view = DrogaSelectView(bot, foto, _avvia_vendita)
+        await interaction.response.send_message("🌿 Che tipo di droga vuoi vendere?", view=view, ephemeral=True)
+
+    @bot.tree.command(name="fine-vendita", description="Termina la sessione di vendita droga")
     @app_commands.describe(droga="Tipo di droga che stavi vendendo")
-    @app_commands.choices(droga=DROGA_CHOICES)
-    async def vendita_fine(interaction: discord.Interaction, droga: str):
+    @app_commands.autocomplete(droga=_droga_autocomplete)
+    async def fine_vendita(interaction: discord.Interaction, droga: str):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid = str(interaction.user.id)
         if uid not in _vendite_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna vendita attiva. Usa `/nero vendita inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna vendita attiva. Usa `/inizio-vendita` prima.", ephemeral=True); return
         sessione = _vendite_attive[uid]
         if sessione["droga"] != droga:
             await interaction.response.send_message(
                 f"❌ La tua vendita attiva è di **{sessione['droga']}**, non di **{droga}**.", ephemeral=True); return
+        if not _ha_ruolo_droga(interaction.user, droga):
+            await interaction.response.send_message(f"❌ Non hai il ruolo richiesto per **{droga}**.", ephemeral=True); return
         now      = datetime.now(timezone.utc)
         inizio   = sessione["inizio"]
         durata_s = (now - inizio).total_seconds()
@@ -631,17 +677,20 @@ def setup_theft_commands(bot):
         except Exception: pass
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  /nero armi inizia | fine
+    #  /inizio-costruzione-armi | /fine-costruzione-armi — stesso pattern con
+    #  autocomplete (le armi sono poche, l'autocomplete è più comodo del menu)
     # ══════════════════════════════════════════════════════════════════════════
 
-    @armi_group.command(name="inizia", description="[Armeria] Inizia una sessione di costruzione armi")
+    @bot.tree.command(name="inizio-costruzione-armi", description="[Armeria] Inizia una sessione di costruzione armi")
     @app_commands.describe(arma="Tipo di arma da costruire", foto="Foto della sessione di lavoro (OBBLIGATORIA)")
-    @app_commands.choices(arma=ARMI_CHOICES)
-    async def armi_inizia(interaction: discord.Interaction, arma: str, foto: discord.Attachment):
+    @app_commands.autocomplete(arma=_arma_autocomplete)
+    async def inizio_costruzione_armi(interaction: discord.Interaction, arma: str, foto: discord.Attachment):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid    = str(interaction.user.id)
         member = interaction.user
+        if arma not in [c.value for c in ARMI_CHOICES]:
+            await interaction.response.send_message("❌ Tipo di arma non valido.", ephemeral=True); return
         if not foto.content_type or not foto.content_type.startswith("image/"):
             await interaction.response.send_message("❌ Allega un'immagine valida (jpg, png...).", ephemeral=True); return
         if not isinstance(member, discord.Member) or \
@@ -651,21 +700,13 @@ def setup_theft_commands(bot):
         if uid in _creazioni_armi_attive:
             await interaction.response.send_message(
                 f"❌ Hai già una costruzione di **{_creazioni_armi_attive[uid]['arma']}** in corso!\n"
-                f"Usa `/nero armi fine` prima.", ephemeral=True); return
+                f"Usa `/fine-costruzione-armi` prima.", ephemeral=True); return
         now = datetime.now(timezone.utc)
         _creazioni_armi_attive[uid] = {"arma": arma, "inizio": now}
 
         embed = discord.Embed(
             title=f"{EMOJI_FUOCO} 𝐂𝐎𝐒𝐓𝐑𝐔𝐙𝐈𝐎𝐍𝐄 𝐀𝐑𝐌𝐈 𝐈𝐍𝐈𝐙𝐈𝐀𝐓𝐀 {EMOJI_FUOCO}",
             description=(
-                "```\n"
-                "  ██╗      █████╗ ██████╗  ██████╗ \n"
-                "  ██║     ██╔══██╗██╔══██╗██╔═══██╗\n"
-                "  ██║     ███████║██████╔╝██║   ██║\n"
-                "  ██║     ██╔══██║██╔══██╗██║   ██║\n"
-                "  ███████╗██║  ██║██████╔╝╚██████╔╝\n"
-                "  ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ \n"
-                "```\n"
                 "*Il banco da lavoro è pronto. Gli attrezzi sono affilati...*\n"
                 "*Un'altra arma sta per prendere forma nell'ombra.*\n\u200b"
             ),
@@ -695,7 +736,7 @@ def setup_theft_commands(bot):
         embed.add_field(name="\u200b", value="╚══════════════════════════╝", inline=False)
         embed.set_image(url=foto.url)
         embed.set_footer(
-            text="🏙️ West Coast RP '93 — Armeria | Usa /nero armi fine per completare",
+            text="🏙️ West Coast RP '93 — Armeria | Usa /fine-costruzione-armi per completare",
             icon_url=member.display_avatar.url
         )
         await interaction.response.send_message(embed=embed)
@@ -704,14 +745,14 @@ def setup_theft_commands(bot):
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    @armi_group.command(name="fine", description="[Armeria] Termina la sessione di costruzione armi")
-    async def armi_fine(interaction: discord.Interaction):
+    @bot.tree.command(name="fine-costruzione-armi", description="[Armeria] Termina la sessione di costruzione armi")
+    async def fine_costruzione_armi(interaction: discord.Interaction):
         if not _criminali_attivi():
             await interaction.response.send_message(_MSG_OFFLINE, ephemeral=True); return
         uid = str(interaction.user.id)
         if uid not in _creazioni_armi_attive:
             await interaction.response.send_message(
-                "❌ Non hai nessuna costruzione in corso.\nUsa `/nero armi inizia` prima.", ephemeral=True); return
+                "❌ Non hai nessuna costruzione in corso.\nUsa `/inizio-costruzione-armi` prima.", ephemeral=True); return
         sessione = _creazioni_armi_attive[uid]
         arma     = sessione["arma"]
         now      = datetime.now(timezone.utc)
@@ -755,5 +796,5 @@ def setup_theft_commands(bot):
             if ch: await ch.send(embed=embed)
         except Exception: pass
 
-    # ── Registra il gruppo (1 solo comando verso il limite di 100) ─────────────
+    # ── Registra il gruppo /nero (alcol/distillazione/moonshine, 1 comando verso il limite) ──
     bot.tree.add_command(nero_group)
